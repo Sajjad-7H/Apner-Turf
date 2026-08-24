@@ -1,64 +1,128 @@
 require('dotenv').config();
-const { Sequelize } = require('sequelize');
+const express = require('express');
+const session = require('express-session');
+const flash = require('connect-flash');
+const methodOverride = require('method-override');
+const expressLayouts = require('express-ejs-layouts');
+const path = require('path');
 
-// If a Postgres connection string is present (e.g. from the Vercel Postgres / Neon
-// integration) but DB_DIALECT wasn't explicitly set, default to postgres instead of
-// sqlite - sqlite's file storage doesn't work on Vercel's read-only serverless filesystem.
-const hasPostgresUrl = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL);
-const dialect = process.env.DB_DIALECT || (hasPostgresUrl ? 'postgres' : 'sqlite');
+const { sequelize } = require('./models');
+const { getAllSettings } = require('./utils/helpers');
+const { fixDatabase, cleanupBackupTables } = require('./utils/dbFix');
 
-let sequelize;
+const app = express();
 
-if (dialect === 'sqlite') {
-  sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: require('path').join(__dirname, '..', 'database.sqlite'),
-    logging: false,
-    // SQLite serialises writes anyway, and a single connection means the
-    // `PRAGMA foreign_keys` toggle in server.js (which is per-connection) reliably
-    // applies to the connection sync() runs on. It also avoids SQLITE_BUSY errors.
-    pool: { max: 1, min: 0, idle: 10000 }
-  });
-} else if (dialect === 'postgres') {
-  // Vercel Postgres / Neon / Supabase inject a single connection string
-  // (DATABASE_URL, POSTGRES_URL, or POSTGRES_PRISMA_URL) instead of separate
-  // DB_HOST/DB_USER/etc vars. Prefer that when present so the integration's
-  // env vars work with zero extra config.
-  const connectionString =
-    process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL;
+// -------- View engine --------
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(expressLayouts);
+app.set('layout', 'partials/layout');
 
-  const commonOptions = {
-    dialect: 'postgres',
-    logging: false,
-    pool: { max: 10, min: 0, idle: 10000 },
-    // Managed Postgres hosts (Neon, Vercel Postgres, Aiven, Supabase) require SSL and
-    // present a cert not in Node's default trust store, so verification is relaxed.
-    dialectOptions: {
-      ssl: { require: true, rejectUnauthorized: false }
-    }
-  };
+// -------- Middleware --------
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(methodOverride('_method'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-  sequelize = connectionString
-    ? new Sequelize(connectionString, commonOptions)
-    : new Sequelize(
-        process.env.DB_NAME,
-        process.env.DB_USER,
-        process.env.DB_PASS,
-        { host: process.env.DB_HOST, port: process.env.DB_PORT, ...commonOptions }
-      );
-} else {
-  sequelize = new Sequelize(
-    process.env.DB_NAME,
-    process.env.DB_USER,
-    process.env.DB_PASS,
-    {
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      dialect: 'mysql',
-      logging: false,
-      pool: { max: 10, min: 0, idle: 10000 }
-    }
-  );
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'turf_secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 }
+}));
+app.use(flash());
+
+// Make session user, flash messages, and site settings available to ALL views
+app.use(async (req, res, next) => {
+  res.locals.currentUser = req.session.user || null;
+  res.locals.success = req.flash('success');
+  res.locals.error = req.flash('error');
+  try {
+    res.locals.settings = await getAllSettings();
+  } catch (e) {
+    res.locals.settings = { siteName: 'Apnar Turf' };
+  }
+  next();
+});
+
+// Schema migration on startup.
+//
+// `sync({ alter: true })` on SQLite applies a column change by rebuilding the whole table:
+// copy to `<name>_backup`, DROP the original, rename back. With foreign keys enforced, that
+// DROP fails ("FOREIGN KEY constraint failed") the moment any child table holds rows pointing
+// at it - e.g. a Booking referencing a User. So FK checks are turned off for the migration and
+// switched back on before the server accepts traffic. `pool.max` is 1 for SQLite so both
+// pragmas land on the same connection sync() uses.
+async function migrate() {
+  // Clears leftovers from a previously interrupted rebuild, which would otherwise
+  // keep every later sync() failing. Must run before sync().
+  await cleanupBackupTables(sequelize).catch(err =>
+    console.warn('[dbFix] Backup table cleanup skipped:', err.message));
+
+  const isSqlite = sequelize.getDialect() === 'sqlite';
+  if (isSqlite) await sequelize.query('PRAGMA foreign_keys = OFF');
+  try {
+    await sequelize.sync({ alter: true });
+  } finally {
+    if (isSqlite) await sequelize.query('PRAGMA foreign_keys = ON');
+  }
+  await fixDatabase(sequelize);
 }
 
-module.exports = sequelize;
+// Kick migration off immediately (module load time), not on the first request - so it
+// runs concurrently with whatever else happens during a cold start instead of adding
+// its full latency on top of the first request's latency.
+const migrationReady = migrate().catch(err => {
+  console.error('Failed to sync database:', err);
+  throw err;
+});
+
+// On Vercel, this module is re-evaluated per cold start and the exported `app` starts
+// handling requests immediately - it does NOT wait for `app.listen()` (that call is a
+// no-op in the serverless runtime, see below). Without this gate, the first request(s)
+// after a cold start could hit routes before sync()/fixDatabase() finish and fail against
+// a table that doesn't exist yet. So every request is queued behind the same migration
+// promise before it reaches any route.
+app.use(async (req, res, next) => {
+  try {
+    await migrationReady;
+    next();
+  } catch (err) {
+    res.status(500).send('Database is not ready: ' + err.message);
+  }
+});
+
+// -------- Routes --------
+app.use('/', require('./routes/auth'));
+app.use('/', require('./routes/public'));
+app.use('/', require('./routes/booking'));
+app.use('/', require('./routes/tournament'));
+app.use('/admin', require('./routes/admin'));
+
+// -------- 404 --------
+app.use((req, res) => {
+  res.status(404).render('user/404', { title: 'Page Not Found', layout: 'partials/layout' });
+});
+
+// -------- Error handler --------
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).send('Something went wrong: ' + err.message);
+});
+
+const PORT = process.env.PORT || 3000;
+
+if (require.main === module) {
+  // Only actually bind a port for local `node server.js` / `npm run dev`. On Vercel,
+  // @vercel/node invokes the exported app directly per-request and never runs this file
+  // as the entrypoint, so this block is skipped there.
+  migrationReady
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`Turf Booking server running at http://localhost:${PORT}`);
+      });
+    })
+    .catch(() => {}); // already logged above
+}
+
+module.exports = app;
