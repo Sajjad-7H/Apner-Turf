@@ -45,26 +45,6 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// -------- Routes --------
-app.use('/', require('./routes/auth'));
-app.use('/', require('./routes/public'));
-app.use('/', require('./routes/booking'));
-app.use('/', require('./routes/tournament'));
-app.use('/admin', require('./routes/admin'));
-
-// -------- 404 --------
-app.use((req, res) => {
-  res.status(404).render('user/404', { title: 'Page Not Found', layout: 'partials/layout' });
-});
-
-// -------- Error handler --------
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).send('Something went wrong: ' + err.message);
-});
-
-const PORT = process.env.PORT || 3000;
-
 // Schema migration on startup.
 //
 // `sync({ alter: true })` on SQLite applies a column change by rebuilding the whole table:
@@ -89,14 +69,60 @@ async function migrate() {
   await fixDatabase(sequelize);
 }
 
-migrate()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Turf Booking server running at http://localhost:${PORT}`);
-    });
-  })
-  .catch(err => {
-    console.error('Failed to sync database:', err);
-  });
+// Kick migration off immediately (module load time), not on the first request - so it
+// runs concurrently with whatever else happens during a cold start instead of adding
+// its full latency on top of the first request's latency.
+const migrationReady = migrate().catch(err => {
+  console.error('Failed to sync database:', err);
+  throw err;
+});
+
+// On Vercel, this module is re-evaluated per cold start and the exported `app` starts
+// handling requests immediately - it does NOT wait for `app.listen()` (that call is a
+// no-op in the serverless runtime, see below). Without this gate, the first request(s)
+// after a cold start could hit routes before sync()/fixDatabase() finish and fail against
+// a table that doesn't exist yet. So every request is queued behind the same migration
+// promise before it reaches any route.
+app.use(async (req, res, next) => {
+  try {
+    await migrationReady;
+    next();
+  } catch (err) {
+    res.status(500).send('Database is not ready: ' + err.message);
+  }
+});
+
+// -------- Routes --------
+app.use('/', require('./routes/auth'));
+app.use('/', require('./routes/public'));
+app.use('/', require('./routes/booking'));
+app.use('/', require('./routes/tournament'));
+app.use('/admin', require('./routes/admin'));
+
+// -------- 404 --------
+app.use((req, res) => {
+  res.status(404).render('user/404', { title: 'Page Not Found', layout: 'partials/layout' });
+});
+
+// -------- Error handler --------
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).send('Something went wrong: ' + err.message);
+});
+
+const PORT = process.env.PORT || 3000;
+
+if (require.main === module) {
+  // Only actually bind a port for local `node server.js` / `npm run dev`. On Vercel,
+  // @vercel/node invokes the exported app directly per-request and never runs this file
+  // as the entrypoint, so this block is skipped there.
+  migrationReady
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`Turf Booking server running at http://localhost:${PORT}`);
+      });
+    })
+    .catch(() => {}); // already logged above
+}
 
 module.exports = app;
