@@ -1,0 +1,39 @@
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card p-3">
+      <h5>New Coupon</h5>
+      <form method="POST" action="/admin/coupons">
+        <div class="mb-2"><input name="code" class="form-control" placeholder="CODE, e.g. WELCOME10" required></div>
+        <div class="mb-2">
+          <select name="discountType" class="form-select">
+            <option value="percent">Percent (%)</option>
+            <option value="flat">Flat (৳)</option>
+          </select>
+        </div>
+        <div class="mb-2"><input type="number" name="discountValue" class="form-control" placeholder="Discount value" required></div>
+        <div class="mb-2"><input type="number" name="maxUses" class="form-control" placeholder="Max uses (default 100)"></div>
+        <div class="mb-2"><input type="date" name="expiresAt" class="form-control"></div>
+        <button class="btn btn-success w-100">Create Coupon</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card p-3">
+      <table class="table align-middle">
+        <thead><tr><th>Code</th><th>Discount</th><th>Used</th><th>Expires</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <% coupons.forEach(c => { %>
+            <tr>
+              <td><%= c.code %></td>
+              <td><%= c.discountValue %><%= c.discountType==='percent'?'%':' ৳' %></td>
+              <td><%= c.usedCount %>/<%= c.maxUses %></td>
+              <td><%= c.expiresAt ? c.expiresAt.toString().slice(0,10) : 'Never' %></td>
+              <td><span class="badge bg-<%= c.isActive?'success':'secondary' %>"><%= c.isActive?'Active':'Disabled' %></span></td>
+              <td><form action="/admin/coupons/<%= c.id %>/toggle" method="POST"><button class="btn btn-sm btn-outline-primary"><%= c.isActive?'Disable':'Enable' %></button></form></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

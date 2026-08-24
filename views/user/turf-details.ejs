@@ -1,0 +1,217 @@
+<div class="container my-5">
+  <div class="row g-4">
+    <div class="col-md-7">
+      <img src="<%= turf.image %>" class="img-fluid rounded-4 mb-3" alt="<%= turf.name %>" onerror="this.src='https://placehold.co/800x500?text=Turf'">
+      <h2><%= turf.name %></h2>
+      <p class="text-muted"><i class="fa-solid fa-location-dot"></i> <%= turf.location %></p>
+      <p><%= turf.description %></p>
+      <div class="mb-3">
+        <span class="badge bg-success-subtle text-success me-1"><%= turf.type %></span>
+        <span class="badge bg-secondary-subtle text-secondary me-1"><%= turf.indoorOutdoor %></span>
+        <span class="badge bg-info-subtle text-info">Capacity: <%= turf.capacity %></span>
+      </div>
+      <h5>Facilities</h5>
+      <div class="mb-4">
+        <% if (facilities.length === 0) { %><p class="text-muted">Not specified.</p><% } %>
+        <% facilities.forEach(f => { %><span class="badge bg-light text-dark border me-2 mb-2"><i class="fa-solid fa-check text-success"></i> <%= f %></span><% }) %>
+      </div>
+
+      <% if (turf.mapEmbedUrl) { %>
+        <h5>Location</h5>
+        <div class="ratio ratio-16x9 mb-4"><iframe src="<%= turf.mapEmbedUrl %>" style="border:0;" allowfullscreen loading="lazy"></iframe></div>
+      <% } %>
+
+      <h5>Reviews (<%= turf.Reviews ? turf.Reviews.filter(r=>r.isApproved).length : 0 %>)</h5>
+      <% if (turf.Reviews && turf.Reviews.filter(r=>r.isApproved).length) { %>
+        <% turf.Reviews.filter(r=>r.isApproved).forEach(r => { %>
+          <div class="border-bottom py-2">
+            <strong><%= r.User ? r.User.name : 'User' %></strong>
+            <span class="text-warning"><% for(let i=0;i<r.rating;i++){ %>&#9733;<% } %></span>
+            <p class="mb-0 text-muted"><%= r.comment %></p>
+          </div>
+        <% }) %>
+      <% } else { %><p class="text-muted">No reviews yet.</p><% } %>
+
+      <% if (currentUser) { %>
+        <form action="/turfs/<%= turf.id %>/review" method="POST" class="mt-3">
+          <div class="row g-2">
+            <div class="col-auto">
+              <select name="rating" class="form-select" required>
+                <option value="">Rating</option>
+                <% [5,4,3,2,1].forEach(n=>{ %><option value="<%=n%>"><%=n%> Star</option><% }) %>
+              </select>
+            </div>
+            <div class="col">
+              <input type="text" name="comment" class="form-control" placeholder="Write a review...">
+            </div>
+            <div class="col-auto"><button class="btn btn-outline-success">Submit</button></div>
+          </div>
+        </form>
+      <% } %>
+    </div>
+
+    <div class="col-md-5">
+      <div class="card p-4 shadow-sm sticky-top" style="top:90px;">
+        <h5><i class="fa-solid fa-calendar-days text-success"></i> Book This Turf</h5>
+        <p class="text-muted small">Base price: ৳<%= turf.pricePerHour %>/hr &middot; Weekend/Peak pricing may apply.</p>
+
+        <div class="mb-3">
+          <label class="form-label">Select Date</label>
+          <input type="date" id="bookingDate" class="form-control" min="<%= new Date().toISOString().slice(0,10) %>">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Available Time Slots</label>
+          <div id="slotContainer" class="d-flex flex-wrap gap-2">
+            <p class="text-muted small">Pick a date to see slots.</p>
+          </div>
+        </div>
+
+        <% if (currentUser) { %>
+        <form id="bookingForm" action="/book/<%= turf.id %>" method="POST">
+          <input type="hidden" name="date" id="formDate">
+          <input type="hidden" name="startTime" id="formStart">
+          <input type="hidden" name="endTime" id="formEnd">
+
+          <div class="mb-3">
+            <label class="form-label">Coupon Code (optional)</label>
+            <input type="text" name="couponCode" class="form-control" placeholder="e.g. WELCOME10">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Payment Method</label>
+            <select name="paymentMethod" class="form-select" required>
+              <option value="bKash">bKash</option>
+              <option value="Nagad">Nagad</option>
+              <option value="Rocket">Rocket</option>
+              <option value="Card">Card</option>
+              <option value="Cash">Cash on Booking</option>
+            </select>
+          </div>
+
+          <div id="offlineHelp" class="mb-3 text-muted small d-none">
+            Send payment to admin number: <strong><%= settings.contactPhone %></strong>. After paying, enter the transaction ID, name and payer number below (required for verification).
+          </div>
+
+          <div id="paymentDetails" class="d-none">
+            <div class="mb-2"><label class="form-label">Transaction ID</label><input type="text" name="transactionId" class="form-control"></div>
+            <div class="mb-2"><label class="form-label">Payer Name</label><input type="text" name="payerName" class="form-control"></div>
+            <div class="mb-2"><label class="form-label">Payer Number</label><input type="text" name="payerNumber" class="form-control"></div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Notes (optional)</label>
+            <textarea name="notes" class="form-control" rows="2"></textarea>
+          </div>
+
+          <button type="submit" id="confirmBtn" class="btn btn-success w-100" disabled>Select a slot first</button>
+        </form>
+        <% } else { %>
+          <a href="/login" class="btn btn-success w-100">Login to Book</a>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const turfId = <%= turf.id %>;
+const dateInput = document.getElementById('bookingDate');
+const slotContainer = document.getElementById('slotContainer');
+const confirmBtn = document.getElementById('confirmBtn');
+
+dateInput?.addEventListener('change', loadSlots);
+const paymentSelect = document.querySelector('select[name="paymentMethod"]');
+const offlineHelp = document.getElementById('offlineHelp');
+const paymentDetails = document.getElementById('paymentDetails');
+const trxInput = document.querySelector('input[name="transactionId"]');
+const payerNameInput = document.querySelector('input[name="payerName"]');
+const payerNumberInput = document.querySelector('input[name="payerNumber"]');
+let selectedSlot = null;
+
+function isOnlineMethod() {
+  return ['bKash', 'Nagad', 'Rocket'].includes(paymentSelect.value);
+}
+
+function updatePaymentUI() {
+  if (isOnlineMethod()) {
+    offlineHelp.classList.remove('d-none');
+    paymentDetails.classList.remove('d-none');
+    trxInput.required = true;
+    payerNameInput.required = true;
+    payerNumberInput.required = true;
+  } else {
+    offlineHelp.classList.add('d-none');
+    paymentDetails.classList.add('d-none');
+    trxInput.required = false;
+    payerNameInput.required = false;
+    payerNumberInput.required = false;
+  }
+  refreshConfirmButton();
+}
+
+// The Confirm button stays disabled until a slot is picked, and - for bKash/Nagad/Rocket -
+// until the Transaction ID, payer name and payer number are all filled in.
+function refreshConfirmButton() {
+  if (!confirmBtn) return;
+  if (!selectedSlot) {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Select a slot first';
+    return;
+  }
+  if (isOnlineMethod()) {
+    const filled = trxInput.value.trim() && payerNameInput.value.trim() && payerNumberInput.value.trim();
+    confirmBtn.disabled = !filled;
+    confirmBtn.textContent = filled
+      ? `Confirm Booking - ${selectedSlot.startTime} (৳${selectedSlot.price})`
+      : `Enter payment details to confirm - ${selectedSlot.startTime} (৳${selectedSlot.price})`;
+  } else {
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = `Confirm Booking - ${selectedSlot.startTime} (৳${selectedSlot.price})`;
+  }
+}
+
+[trxInput, payerNameInput, payerNumberInput].forEach(el => el && el.addEventListener('input', refreshConfirmButton));
+paymentSelect?.addEventListener('change', updatePaymentUI);
+updatePaymentUI();
+
+const STATUS_MESSAGES = {
+  booked: 'এই স্লটটি ইতিমধ্যে বুক করা হয়ে গেছে (Already Booked). অন্য একটি স্লট বেছে নিন।',
+  pending: 'এই স্লটের পেমেন্ট যাচাই চলছে (Pending Verification), তাই এটি এখন বুক করা যাবে না।',
+  blocked: 'এই স্লটটি অ্যাডমিন বন্ধ রেখেছেন (Blocked by Admin).'
+};
+
+async function loadSlots() {
+  const date = dateInput.value;
+  if (!date) return;
+  selectedSlot = null;
+  refreshConfirmButton();
+  slotContainer.innerHTML = '<p class="text-muted small">Loading...</p>';
+  const res = await fetch(`/api/availability/${turfId}?date=${date}`);
+  const data = await res.json();
+  slotContainer.innerHTML = '';
+  data.slots.forEach(slot => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `btn btn-sm slot-btn slot-${slot.status}`;
+    btn.innerHTML = `${slot.startTime}<br><small>৳${slot.price}</small>`;
+    if (slot.status === 'available') {
+      btn.addEventListener('click', () => selectSlot(slot, btn));
+    } else {
+      btn.title = slot.reason || STATUS_MESSAGES[slot.status] || 'Not available';
+      btn.addEventListener('click', () => alert(STATUS_MESSAGES[slot.status] || 'This slot is not available.'));
+    }
+    slotContainer.appendChild(btn);
+  });
+}
+
+function selectSlot(slot, btn) {
+  document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('border', 'border-3', 'border-dark'));
+  btn.classList.add('border', 'border-3', 'border-dark');
+  document.getElementById('formDate').value = dateInput.value;
+  document.getElementById('formStart').value = slot.startTime;
+  document.getElementById('formEnd').value = slot.endTime;
+  selectedSlot = slot;
+  refreshConfirmButton();
+}
+</script>

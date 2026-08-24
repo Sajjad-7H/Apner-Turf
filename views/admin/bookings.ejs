@@ -1,0 +1,41 @@
+<form class="mb-3" method="GET">
+  <select name="status" class="form-select" style="width:200px;display:inline-block;" onchange="this.form.submit()">
+    <option value="">All Statuses</option>
+    <% ['pending','confirmed','cancelled','completed'].forEach(s=>{ %><option value="<%=s%>" <%= statusFilter===s?'selected':'' %>><%=s%></option><% }) %>
+  </select>
+</form>
+<div class="card p-3">
+  <table class="table align-middle">
+    <thead><tr><th>Ref</th><th>User</th><th>Turf</th><th>Date</th><th>Time</th><th>Price</th><th>Payment</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      <% bookings.forEach(b => { %>
+        <tr>
+          <td><%= b.bookingRef %></td>
+          <td><%= b.User ? b.User.name : '-' %></td>
+          <td><%= b.Turf ? b.Turf.name : '-' %></td>
+          <td><%= b.date %></td>
+          <td><%= b.startTime %>-<%= b.endTime %></td>
+          <td>৳<%= b.totalPrice %></td>
+          <td>
+            <% if (b.Payment) { %>
+              <div><strong><%= b.Payment.method %></strong> - <span class="badge bg-<%= b.Payment.status==='paid'?'success':b.Payment.status==='pending'?'warning':'danger' %>"><%= b.Payment.status %></span></div>
+              <div class="small text-muted">Txn: <%= b.Payment.transactionId || '-' %></div>
+              <div class="small text-muted">Payer: <%= b.Payment.payerName || '-' %> (<%= b.Payment.payerNumber || '-' %>)</div>
+            <% } else { %>
+              -
+            <% } %>
+          </td>
+          <td><span class="badge bg-<%= b.status==='confirmed'?'success':b.status==='pending'?'warning':'secondary' %>"><%= b.status %></span></td>
+          <td>
+            <form action="/admin/bookings/<%= b.id %>/status" method="POST" class="d-flex gap-1">
+              <select name="status" class="form-select form-select-sm">
+                <% ['pending','confirmed','cancelled','completed'].forEach(s=>{ %><option value="<%=s%>" <%= b.status===s?'selected':'' %>><%=s%></option><% }) %>
+              </select>
+              <button class="btn btn-sm btn-outline-success">Update</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

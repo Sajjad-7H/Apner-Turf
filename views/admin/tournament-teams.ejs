@@ -1,0 +1,86 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <a href="/admin/tournaments" class="text-decoration-none small text-muted"><i class="fa-solid fa-arrow-left me-1"></i>All tournaments</a>
+    <h4 class="mb-0 mt-1"><%= tournament.name %></h4>
+    <p class="text-muted small mb-0">
+      <%= tournament.sport %> &middot; <%= tournament.teamSize %>-a-side &middot;
+      <%= tournament.startDate %> to <%= tournament.endDate %> &middot;
+      Entry fee <%= tournament.entryFee > 0 ? '৳' + tournament.entryFee : 'Free' %>
+    </p>
+  </div>
+  <a href="/tournaments/<%= tournament.id %>" target="_blank" class="btn btn-outline-success btn-sm">View public page</a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="card p-3"><div class="small text-muted">Teams</div><div class="fs-4 fw-bold"><%= teams.filter(x => ['pending','confirmed'].includes(x.team.status)).length %>/<%= tournament.maxTeams %></div></div></div>
+  <div class="col-md-3"><div class="card p-3"><div class="small text-muted">Awaiting verification</div><div class="fs-4 fw-bold text-warning"><%= teams.filter(x => x.team.status === 'pending').length %></div></div></div>
+  <div class="col-md-3"><div class="card p-3"><div class="small text-muted">Fees collected</div><div class="fs-4 fw-bold text-success">৳<%= collected %></div></div></div>
+  <div class="col-md-3"><div class="card p-3"><div class="small text-muted">Fees pending</div><div class="fs-4 fw-bold text-secondary">৳<%= pendingAmount %></div></div></div>
+</div>
+
+<div class="card p-3">
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr><th>Ref</th><th>Team</th><th>Captain</th><th>Players</th><th>Entry Fee / Payment</th><th>Status</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        <% if (teams.length === 0) { %>
+          <tr><td colspan="7" class="text-muted text-center py-4">No team has registered yet.</td></tr>
+        <% } %>
+        <% teams.forEach(({ team, players }) => { %>
+          <tr>
+            <td class="small"><%= team.regRef %></td>
+            <td class="fw-semibold">
+              <%= team.name %>
+              <% if (team.notes) { %><br><span class="small text-muted fst-italic"><%= team.notes %></span><% } %>
+            </td>
+            <td class="small">
+              <%= team.captainName %><br>
+              <i class="fa-solid fa-phone me-1"></i><%= team.captainPhone %>
+              <% if (team.captainEmail) { %><br><i class="fa-solid fa-envelope me-1"></i><%= team.captainEmail %><% } %>
+              <% if (team.User) { %><br><span class="text-muted">acct: <%= team.User.name %></span><% } %>
+            </td>
+            <td class="small">
+              <span class="badge bg-<%= players.length >= tournament.teamSize ? 'success' : 'warning text-dark' %>"><%= players.length %> listed</span>
+              <% if (players.length) { %>
+                <div class="text-muted mt-1" style="max-width: 200px;"><%= players.join(', ') %></div>
+              <% } %>
+            </td>
+            <td class="small">
+              <% if (team.Payment) { %>
+                <strong>৳<%= team.Payment.amount %></strong> via <%= team.Payment.method %><br>
+                Txn: <%= team.Payment.transactionId || '-' %><br>
+                Payer: <%= team.Payment.payerName || '-' %> (<%= team.Payment.payerNumber || '-' %>)<br>
+                <span class="badge bg-<%= team.Payment.status==='paid'?'success':team.Payment.status==='pending'?'warning text-dark':'danger' %>"><%= team.Payment.status %></span>
+                <span class="text-muted">· <%= team.Payment.invoiceNo %></span>
+              <% } else { %>
+                <span class="text-muted">Free entry</span>
+              <% } %>
+            </td>
+            <td>
+              <span class="badge bg-<%= team.status==='confirmed'?'success':team.status==='pending'?'warning text-dark':team.status==='rejected'?'danger':'secondary' %>"><%= team.status %></span>
+            </td>
+            <td class="text-nowrap">
+              <% if (team.status !== 'confirmed') { %>
+                <form action="/admin/teams/<%= team.id %>/status" method="POST" class="d-inline">
+                  <input type="hidden" name="status" value="confirmed">
+                  <button class="btn btn-sm btn-success" title="Verify payment & confirm team"><i class="fa-solid fa-check"></i></button>
+                </form>
+              <% } %>
+              <% if (team.status !== 'rejected') { %>
+                <form action="/admin/teams/<%= team.id %>/status" method="POST" class="d-inline" onsubmit="return confirm('Reject this registration?')">
+                  <input type="hidden" name="status" value="rejected">
+                  <button class="btn btn-sm btn-outline-danger" title="Reject (payment not verified)"><i class="fa-solid fa-xmark"></i></button>
+                </form>
+              <% } %>
+              <form action="/admin/teams/<%= team.id %>/delete" method="POST" class="d-inline" onsubmit="return confirm('Permanently delete this registration and its payment record?')">
+                <button class="btn btn-sm btn-outline-secondary" title="Delete"><i class="fa-solid fa-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

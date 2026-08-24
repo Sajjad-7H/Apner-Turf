@@ -1,0 +1,29 @@
+<div class="container my-5">
+  <h2 class="mb-4">All Turfs</h2>
+  <form class="row g-2 mb-4" method="GET" action="/turfs">
+    <div class="col-auto">
+      <select name="type" class="form-select" onchange="this.form.submit()">
+        <% ['All','Football','Cricket','Both'].forEach(t => { %>
+          <option value="<%= t %>" <%= selectedType===t?'selected':'' %>><%= t %></option>
+        <% }) %>
+      </select>
+    </div>
+  </form>
+  <div class="row g-4">
+    <% if (turfs.length === 0) { %><p class="text-muted">No turfs found.</p><% } %>
+    <% turfs.forEach(turf => { %>
+      <div class="col-md-4">
+        <div class="card turf-card h-100">
+          <img src="<%= turf.image %>" alt="<%= turf.name %>" onerror="this.src='https://placehold.co/600x400?text=Turf'">
+          <div class="card-body">
+            <h5 class="card-title"><%= turf.name %></h5>
+            <p class="text-muted small mb-1"><i class="fa-solid fa-location-dot"></i> <%= turf.location %></p>
+            <p class="mb-2"><span class="badge bg-success-subtle text-success"><%= turf.type %></span> <span class="badge bg-secondary-subtle text-secondary"><%= turf.indoorOutdoor %></span></p>
+            <p class="fw-bold text-success">৳<%= turf.pricePerHour %> / hour</p>
+            <a href="/turfs/<%= turf.id %>" class="btn btn-success w-100">View & Book</a>
+          </div>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+</div>

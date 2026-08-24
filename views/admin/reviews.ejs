@@ -1,0 +1,20 @@
+<div class="card p-3">
+  <table class="table align-middle">
+    <thead><tr><th>User</th><th>Turf</th><th>Rating</th><th>Comment</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      <% reviews.forEach(r => { %>
+        <tr>
+          <td><%= r.User ? r.User.name : '-' %></td>
+          <td><%= r.Turf ? r.Turf.name : '-' %></td>
+          <td><%= r.rating %> &#9733;</td>
+          <td><%= r.comment %></td>
+          <td><span class="badge bg-<%= r.isApproved?'success':'secondary' %>"><%= r.isApproved?'Approved':'Hidden' %></span></td>
+          <td>
+            <form action="/admin/reviews/<%= r.id %>/toggle" method="POST" class="d-inline"><button class="btn btn-sm btn-outline-primary"><%= r.isApproved?'Hide':'Approve' %></button></form>
+            <form action="/admin/reviews/<%= r.id %>/delete" method="POST" class="d-inline"><button class="btn btn-sm btn-outline-danger">Delete</button></form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

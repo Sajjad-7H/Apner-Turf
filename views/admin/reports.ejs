@@ -1,0 +1,29 @@
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card p-3">
+      <h5>Bookings & Revenue by Turf</h5>
+      <table class="table table-sm">
+        <thead><tr><th>Turf</th><th>Bookings</th><th>Revenue</th></tr></thead>
+        <tbody>
+          <% bookingsByTurf.forEach(row => { %>
+            <tr><td><%= row['Turf.name'] %></td><td><%= row.count %></td><td>৳<%= row.revenue || 0 %></td></tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3">
+      <h5>Monthly Revenue (paid payments)</h5>
+      <table class="table table-sm">
+        <thead><tr><th>Month</th><th>Total</th></tr></thead>
+        <tbody>
+          <% (monthlyRevenue||[]).forEach(row => { %>
+            <tr><td><%= row.month %></td><td>৳<%= row.total %></td></tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <p class="text-muted small mb-0">Note: monthly grouping uses SQLite's strftime for this demo; switch to MySQL's DATE_FORMAT when deploying with DB_DIALECT=mysql.</p>
+    </div>
+  </div>
+</div>

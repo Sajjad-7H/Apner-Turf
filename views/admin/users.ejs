@@ -1,0 +1,21 @@
+<div class="card p-3">
+  <table class="table align-middle">
+    <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Member</th><th>Joined</th><th></th></tr></thead>
+    <tbody>
+      <% users.forEach(u => { %>
+        <tr>
+          <td><%= u.name %></td>
+          <td><%= u.email %></td>
+          <td><%= u.phone %></td>
+          <td><span class="badge bg-<%= u.isMember?'success':'secondary' %>"><%= u.isMember?'Member':'Regular' %></span></td>
+          <td><%= u.createdAt.toDateString() %></td>
+          <td>
+            <form action="/admin/users/<%= u.id %>/toggle-member" method="POST">
+              <button class="btn btn-sm btn-outline-primary"><%= u.isMember?'Remove Membership':'Make Member' %></button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

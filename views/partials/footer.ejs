@@ -1,0 +1,26 @@
+<footer class="bg-dark text-light pt-5 pb-3 mt-5">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <h5><%= settings.siteName %></h5>
+        <p class="text-white-50"><%= settings.tagline %></p>
+      </div>
+      <div class="col-md-4">
+        <h6>Quick Links</h6>
+        <ul class="list-unstyled">
+          <li><a href="/turfs" class="text-white-50 text-decoration-none">All Turfs</a></li>
+          <li><a href="/tournaments" class="text-white-50 text-decoration-none">Tournaments</a></li>
+          <li><a href="/contact" class="text-white-50 text-decoration-none">Contact</a></li>
+        </ul>
+      </div>
+      <div class="col-md-4">
+        <h6>Contact</h6>
+        <p class="text-white-50 mb-1"><i class="fa-solid fa-envelope me-2"></i><%= settings.contactEmail %></p>
+        <p class="text-white-50 mb-1"><i class="fa-solid fa-phone me-2"></i><%= settings.contactPhone %></p>
+        <p class="text-white-50"><i class="fa-solid fa-location-dot me-2"></i><%= settings.address %></p>
+      </div>
+    </div>
+    <hr class="border-secondary">
+    <p class="text-center text-white-50 mb-0 small">&copy; <%= new Date().getFullYear() %> <%= settings.siteName %>. All rights reserved.</p>
+  </div>
+</footer>

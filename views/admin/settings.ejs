@@ -1,0 +1,15 @@
+<div class="card p-4" style="max-width:640px;">
+  <p class="text-muted">Change your site name, logo, and contact info here — updates apply across the whole website immediately.</p>
+  <form method="POST" action="/admin/settings" enctype="multipart/form-data">
+    <div class="mb-3"><label class="form-label">Site Name</label><input name="siteName" class="form-control" value="<%= settings.siteName %>" required></div>
+    <div class="mb-3"><label class="form-label">Tagline</label><input name="tagline" class="form-control" value="<%= settings.tagline %>"></div>
+    <div class="mb-3"><label class="form-label">Logo</label><input type="file" name="logo" class="form-control">
+      <% if (settings.logo) { %><img src="<%= settings.logo %>" height="40" class="mt-2"><% } %>
+    </div>
+    <div class="mb-3"><label class="form-label">Contact Email</label><input name="contactEmail" class="form-control" value="<%= settings.contactEmail %>"></div>
+    <div class="mb-3"><label class="form-label">Contact Phone</label><input name="contactPhone" class="form-control" value="<%= settings.contactPhone %>"></div>
+    <div class="mb-3"><label class="form-label">Address</label><input name="address" class="form-control" value="<%= settings.address %>"></div>
+    <div class="mb-3"><label class="form-label">Facebook URL</label><input name="facebookUrl" class="form-control" value="<%= settings.facebookUrl || '' %>"></div>
+    <button class="btn btn-success">Save Settings</button>
+  </form>
+</div>

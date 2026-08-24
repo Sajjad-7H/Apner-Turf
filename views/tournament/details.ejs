@@ -1,0 +1,242 @@
+<div class="container my-5">
+  <a href="/tournaments" class="text-decoration-none small text-muted"><i class="fa-solid fa-arrow-left me-1"></i>All tournaments</a>
+
+  <div class="row g-4 mt-1">
+    <!-- ---------------- Left: tournament info ---------------- -->
+    <div class="col-lg-7">
+      <% if (tournament.image) { %>
+        <img src="<%= tournament.image %>" alt="<%= tournament.name %>" class="img-fluid rounded mb-3" style="max-height: 320px; object-fit: cover; width: 100%;">
+      <% } %>
+
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <h2 class="mb-0"><%= tournament.name %></h2>
+        <span class="badge bg-<%= tournament.status==='upcoming'?'success':tournament.status==='ongoing'?'warning':tournament.status==='cancelled'?'danger':'secondary' %>"><%= tournament.status %></span>
+      </div>
+      <p class="text-muted"><%= tournament.sport %> &middot; <%= tournament.teamSize %>-a-side &middot; <%= tournament.startDate %> to <%= tournament.endDate %></p>
+
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="card p-3 text-center h-100">
+            <div class="small text-muted">Entry Fee</div>
+            <div class="fw-bold text-success fs-5"><%= tournament.entryFee > 0 ? '৳' + tournament.entryFee : 'Free' %></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card p-3 text-center h-100">
+            <div class="small text-muted">Prize Money</div>
+            <div class="fw-bold fs-5"><%= tournament.prizeMoney > 0 ? '৳' + tournament.prizeMoney : '—' %></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card p-3 text-center h-100">
+            <div class="small text-muted">Teams</div>
+            <div class="fw-bold fs-5"><%= reg.activeTeamCount %>/<%= tournament.maxTeams %></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card p-3 text-center h-100">
+            <div class="small text-muted">Spots Left</div>
+            <div class="fw-bold fs-5 <%= reg.spotsLeft > 0 ? 'text-success' : 'text-danger' %>"><%= reg.spotsLeft %></div>
+          </div>
+        </div>
+      </div>
+
+      <% if (tournament.venue) { %><p><i class="fa-solid fa-location-dot me-2 text-success"></i><strong>Venue:</strong> <%= tournament.venue %></p><% } %>
+      <% if (tournament.registrationDeadline) { %><p><i class="fa-regular fa-clock me-2 text-success"></i><strong>Registration deadline:</strong> <%= tournament.registrationDeadline %></p><% } %>
+
+      <% if (tournament.description) { %>
+        <h5 class="mt-4">About</h5>
+        <p><%= tournament.description %></p>
+      <% } %>
+
+      <% if (rules.length) { %>
+        <h5 class="mt-4">Rules</h5>
+        <ul><% rules.forEach(r => { %><li><%= r %></li><% }) %></ul>
+      <% } %>
+
+      <h5 class="mt-4">Registered Teams (<%= tournament.Teams.length %>)</h5>
+      <% if (tournament.Teams.length === 0) { %>
+        <p class="text-muted">No teams yet — be the first to register!</p>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table table-sm bg-white align-middle">
+            <thead><tr><th>#</th><th>Team</th><th>Captain</th><th>Status</th></tr></thead>
+            <tbody>
+              <% tournament.Teams.forEach((team, i) => { %>
+                <tr>
+                  <td><%= i + 1 %></td>
+                  <td class="fw-semibold"><%= team.name %></td>
+                  <td><%= team.captainName %></td>
+                  <td><span class="badge bg-<%= team.status === 'confirmed' ? 'success' : 'warning' %>"><%= team.status === 'confirmed' ? 'confirmed' : 'awaiting payment' %></span></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- ---------------- Right: registration ---------------- -->
+    <div class="col-lg-5">
+      <% if (!currentUser) { %>
+        <div class="card p-4 shadow-sm text-center">
+          <h5>Want to join?</h5>
+          <p class="text-muted small">Log in to register your team for this tournament.</p>
+          <a href="/login" class="btn btn-success w-100">Login to Register a Team</a>
+          <a href="/register" class="btn btn-link btn-sm">Don't have an account? Sign up</a>
+        </div>
+
+      <% } else if (myTeam) { %>
+        <div class="card p-4 shadow-sm">
+          <h5>Your Team is Registered</h5>
+          <p class="mb-1"><strong><%= myTeam.name %></strong></p>
+          <p class="small text-muted mb-2">Ref: <%= myTeam.regRef %></p>
+          <p class="mb-3">
+            Status:
+            <span class="badge bg-<%= myTeam.status === 'confirmed' ? 'success' : 'warning' %>"><%= myTeam.status %></span>
+            <% if (myTeam.Payment) { %>
+              &middot; Entry fee:
+              <span class="badge bg-<%= myTeam.Payment.status === 'paid' ? 'success' : myTeam.Payment.status === 'pending' ? 'warning' : 'danger' %>"><%= myTeam.Payment.status %></span>
+            <% } %>
+          </p>
+          <% if (myTeam.status === 'pending') { %>
+            <div class="alert alert-warning small py-2">Your entry fee is being verified by the organiser. You'll be confirmed once it clears.</div>
+          <% } %>
+          <a href="/my-tournaments/<%= myTeam.id %>" class="btn btn-success w-100">View Registration</a>
+        </div>
+
+      <% } else if (!reg.open) { %>
+        <div class="card p-4 shadow-sm text-center">
+          <h5>Registration Closed</h5>
+          <p class="text-muted mb-0"><%= reg.reason %></p>
+        </div>
+
+      <% } else { %>
+        <div class="card p-4 shadow-sm">
+          <h5 class="mb-1">Register Your Team</h5>
+          <p class="small text-muted"><%= reg.spotsLeft %> spot<%= reg.spotsLeft === 1 ? '' : 's' %> left &middot; Entry fee <%= tournament.entryFee > 0 ? '৳' + tournament.entryFee : 'Free' %></p>
+
+          <form method="POST" action="/tournaments/<%= tournament.id %>/register" id="regForm">
+            <div class="mb-2">
+              <label class="form-label small mb-1">Team Name</label>
+              <input name="teamName" class="form-control" placeholder="e.g. Dhaka Warriors" required>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small mb-1">Captain Name</label>
+              <input name="captainName" class="form-control" value="<%= currentUser.name %>" required>
+            </div>
+            <div class="row g-2">
+              <div class="col-6 mb-2">
+                <label class="form-label small mb-1">Captain Phone</label>
+                <input name="captainPhone" class="form-control" value="<%= currentUser.phone || '' %>" required>
+              </div>
+              <div class="col-6 mb-2">
+                <label class="form-label small mb-1">Captain Email</label>
+                <input type="email" name="captainEmail" class="form-control" value="<%= currentUser.email || '' %>">
+              </div>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small mb-1">Players (comma separated) — at least <%= tournament.teamSize %></label>
+              <textarea name="players" id="playersInput" class="form-control" rows="3" placeholder="Rahim, Karim, Jamal, ..." required></textarea>
+              <div class="form-text"><span id="playerCount">0</span> / <%= tournament.teamSize %> players listed</div>
+            </div>
+
+            <% if (tournament.entryFee > 0) { %>
+              <hr>
+              <h6>Entry Fee Payment — ৳<%= tournament.entryFee %></h6>
+              <div class="mb-2">
+                <label class="form-label small mb-1">Payment Method</label>
+                <select name="paymentMethod" id="paymentMethod" class="form-select" required>
+                  <option value="bKash">bKash</option>
+                  <option value="Nagad">Nagad</option>
+                  <option value="Rocket">Rocket</option>
+                  <option value="Card">Card</option>
+                  <option value="Cash">Cash (pay the organiser)</option>
+                </select>
+              </div>
+
+              <div id="offlineHelp" class="alert alert-light border small py-2">
+                Send <strong>৳<%= tournament.entryFee %></strong> to <strong><%= settings.contactPhone %></strong>,
+                then enter the transaction ID below. The organiser verifies it and confirms your team.
+              </div>
+
+              <div id="paymentDetails">
+                <div class="mb-2">
+                  <label class="form-label small mb-1">Transaction ID</label>
+                  <input type="text" name="transactionId" id="trxInput" class="form-control" placeholder="e.g. 8N7A2K9XQ1">
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small mb-1">Payer Name</label>
+                  <input type="text" name="payerName" id="payerNameInput" class="form-control" value="<%= currentUser.name %>">
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small mb-1">Payer Number</label>
+                  <input type="text" name="payerNumber" id="payerNumberInput" class="form-control" value="<%= currentUser.phone || '' %>">
+                </div>
+              </div>
+            <% } %>
+
+            <div class="mb-3">
+              <label class="form-label small mb-1">Notes (optional)</label>
+              <textarea name="notes" class="form-control" rows="2"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100">
+              <%= tournament.entryFee > 0 ? 'Register & Submit Payment' : 'Register Team' %>
+            </button>
+          </form>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const teamSize = <%= tournament.teamSize || 0 %>;
+  const entryFee = <%= tournament.entryFee || 0 %>;
+  const playersInput = document.getElementById('playersInput');
+  const playerCount = document.getElementById('playerCount');
+  if (!playersInput) return; // form not rendered (already registered / closed / logged out)
+
+  function countPlayers() {
+    return playersInput.value.split(',').map(p => p.trim()).filter(Boolean).length;
+  }
+  function refreshCount() {
+    const n = countPlayers();
+    playerCount.textContent = n;
+    playerCount.className = n >= teamSize ? 'text-success fw-bold' : 'text-danger fw-bold';
+  }
+  playersInput.addEventListener('input', refreshCount);
+  refreshCount();
+
+  // bKash/Nagad/Rocket need proof of payment; Card/Cash are settled with the organiser directly
+  const ONLINE = ['bKash', 'Nagad', 'Rocket'];
+  const methodSelect = document.getElementById('paymentMethod');
+  const offlineHelp = document.getElementById('offlineHelp');
+  const paymentDetails = document.getElementById('paymentDetails');
+  const trx = document.getElementById('trxInput');
+  const payerName = document.getElementById('payerNameInput');
+  const payerNumber = document.getElementById('payerNumberInput');
+
+  function refreshPayment() {
+    if (!methodSelect) return;
+    const online = ONLINE.includes(methodSelect.value);
+    offlineHelp.classList.toggle('d-none', !online);
+    paymentDetails.classList.toggle('d-none', !online);
+    [trx, payerName, payerNumber].forEach(el => { el.required = online; });
+  }
+  if (methodSelect) {
+    methodSelect.addEventListener('change', refreshPayment);
+    refreshPayment();
+  }
+
+  // Client-side guard so the user gets the team-size message before a round trip
+  document.getElementById('regForm').addEventListener('submit', function (e) {
+    if (teamSize && countPlayers() < teamSize) {
+      e.preventDefault();
+      alert('Please list at least ' + teamSize + ' players (comma separated). You listed ' + countPlayers() + '.');
+    }
+  });
+})();
+</script>

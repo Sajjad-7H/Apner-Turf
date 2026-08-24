@@ -1,0 +1,26 @@
+<div class="auth-shell">
+  <section class="auth-art">
+    <div class="turf-orbit"></div>
+    <div class="turf-ball"><i class="fa-solid fa-futbol"></i></div>
+    <div class="turf-pitch"></div>
+    <button type="button" class="lamp-chain" aria-label="Toggle lamp light">
+      <span class="chain-line"></span><span class="chain-pull"></span>
+    </button>
+    <p class="lamp-hint">PULL THE CHAIN</p>
+  </section>
+
+  <section class="auth-panel">
+    <div class="auth-brand"><span><i class="fa-solid fa-futbol"></i></span><strong><%= settings.siteName %></strong></div>
+    <h1>Create your account</h1>
+    <p class="auth-subtitle">Book your next game in just a few clicks.</p>
+    <form method="POST" action="/register" class="auth-form">
+      <div class="auth-field"><label for="register-name">Full name</label><input id="register-name" name="name" placeholder="Your name" autocomplete="name" required></div>
+      <div class="auth-field"><label for="register-email">Email <span class="optional-label">(optional)</span></label><input id="register-email" type="email" name="email" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="auth-field"><label for="register-phone">Phone</label><input id="register-phone" name="phone" placeholder="01XXXXXXXXX" autocomplete="tel"></div>
+      <div class="auth-field"><label for="register-password">Password</label><input id="register-password" type="password" name="password" placeholder="At least 4 characters" autocomplete="new-password" minlength="4" required></div>
+      <div class="auth-field"><label for="register-confirm-password">Confirm password</label><input id="register-confirm-password" type="password" name="confirmPassword" placeholder="Repeat your password" autocomplete="new-password" minlength="4" required></div>
+      <button class="auth-submit" type="submit">Create account <i class="fa-solid fa-arrow-right"></i></button>
+    </form>
+    <p class="auth-switch">Already registered? <a href="/login">Log in</a></p>
+  </div>
+</div>

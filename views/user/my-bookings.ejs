@@ -1,0 +1,34 @@
+<div class="container my-5">
+  <h2 class="mb-4">My Bookings</h2>
+  <% if (bookings.length === 0) { %>
+    <p class="text-muted">You have no bookings yet. <a href="/turfs">Book a turf now</a>.</p>
+  <% } %>
+  <div class="table-responsive">
+    <table class="table table-hover bg-white align-middle">
+      <thead><tr><th>Ref</th><th>Turf</th><th>Date</th><th>Time</th><th>Price</th><th>Status</th><th>Payment</th><th></th></tr></thead>
+      <tbody>
+        <% bookings.forEach(b => { %>
+          <tr>
+            <td><%= b.bookingRef %></td>
+            <td><%= b.Turf ? b.Turf.name : '-' %></td>
+            <td><%= b.date %></td>
+            <td><%= b.startTime %> - <%= b.endTime %></td>
+            <td>৳<%= b.totalPrice %></td>
+            <td>
+              <span class="badge bg-<%= b.status==='confirmed'?'success':b.status==='pending'?'warning':b.status==='cancelled'?'danger':'secondary' %>"><%= b.status %></span>
+            </td>
+            <td><span class="badge bg-<%= b.Payment && b.Payment.status==='paid'?'success':'secondary' %>"><%= b.Payment ? b.Payment.status : '-' %></span></td>
+            <td>
+              <a href="/my-bookings/<%= b.id %>" class="btn btn-sm btn-outline-success">View</a>
+              <% if (b.status !== 'cancelled') { %>
+              <form action="/my-bookings/<%= b.id %>/cancel" method="POST" class="d-inline" onsubmit="return confirm('Cancel this booking?')">
+                <button class="btn btn-sm btn-outline-danger">Cancel</button>
+              </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

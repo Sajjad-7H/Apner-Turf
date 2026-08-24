@@ -1,0 +1,63 @@
+<div class="container my-5" style="max-width:640px;">
+  <div class="card p-4 shadow-sm">
+    <div class="d-flex justify-content-between align-items-start">
+      <h3>Booking <%= booking.bookingRef %></h3>
+      <span class="badge bg-<%= booking.status==='confirmed'?'success':booking.status==='pending'?'warning':'secondary' %> fs-6"><%= booking.status %></span>
+    </div>
+    <hr>
+    <% const steps = ['pending', 'confirmed', 'completed']; const curIdx = steps.indexOf(booking.status); %>
+    <% if (booking.status === 'cancelled') { %>
+      <div class="alert alert-secondary py-2 mb-3">This booking was cancelled.</div>
+    <% } else { %>
+      <div class="d-flex justify-content-between mb-4 small text-center">
+        <% ['Booked', 'Payment Verified', 'Completed'].forEach((label, i) => { %>
+          <div class="flex-fill">
+            <div class="mx-auto rounded-circle d-flex align-items-center justify-content-center mb-1"
+                 style="width:28px;height:28px;background:<%= i <= curIdx ? '#198754' : '#dee2e6' %>;color:#fff;">
+              <%- i < curIdx ? '&#10003;' : (i+1) %>
+            </div>
+            <div class="<%= i <= curIdx ? 'text-success fw-bold' : 'text-muted' %>"><%= label %></div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+    <p><strong>Turf:</strong> <%= booking.Turf.name %></p>
+    <p><strong>Date:</strong> <%= booking.date %></p>
+    <p><strong>Time:</strong> <%= booking.startTime %> - <%= booking.endTime %></p>
+    <% if (booking.discountAmount > 0) { %><p><strong>Discount:</strong> -৳<%= booking.discountAmount %> (<%= booking.couponCode %>)</p><% } %>
+    <p><strong>Total Paid:</strong> ৳<%= booking.totalPrice %></p>
+    <% if (booking.Payment) { %>
+      <p><strong>Payment Method:</strong> <%= booking.Payment.method %></p>
+      <p><strong>Payment Status:</strong> <%= booking.Payment.status %></p>
+      <p><strong>Invoice No:</strong> <%= booking.Payment.invoiceNo %></p>
+      <p><strong>Transaction ID:</strong> <%= booking.Payment.transactionId || '-' %></p>
+      <p><strong>Payer Name:</strong> <%= booking.Payment.payerName || '-' %></p>
+      <p><strong>Payer Number:</strong> <%= booking.Payment.payerNumber || '-' %></p>
+    <% } %>
+    <% if (booking.notes) { %><p><strong>Notes:</strong> <%= booking.notes %></p><% } %>
+
+    <% if (booking.qrCode) { %>
+      <div class="text-center my-3">
+        <p class="text-muted small">Show this QR code at the turf for check-in</p>
+        <img src="<%= booking.qrCode %>" alt="QR Code" style="width:180px;">
+      </div>
+    <% } %>
+
+    <a href="/my-bookings" class="btn btn-outline-success w-100">Back to My Bookings</a>
+  </div>
+</div>
+
+<% if (booking.Payment && booking.Payment.status === 'pending' && ['bKash','Nagad','Rocket'].includes(booking.Payment.method) && booking.status !== 'confirmed') { %>
+  <div class="container mt-3" style="max-width:640px;">
+    <div class="card p-3">
+      <h5>Submit Payment Details</h5>
+      <p class="text-muted small">Send the amount to admin number: <strong><%= settings.contactPhone %></strong> and enter the transaction details below for verification.</p>
+      <form action="/my-bookings/<%= booking.id %>/payment" method="POST">
+        <div class="mb-2"><label class="form-label">Transaction ID</label><input type="text" name="transactionId" class="form-control" required></div>
+        <div class="mb-2"><label class="form-label">Payer Name</label><input type="text" name="payerName" class="form-control" required></div>
+        <div class="mb-2"><label class="form-label">Payer Number</label><input type="text" name="payerNumber" class="form-control" required></div>
+        <button class="btn btn-success">Submit for Verification</button>
+      </form>
+    </div>
+  </div>
+<% } %>

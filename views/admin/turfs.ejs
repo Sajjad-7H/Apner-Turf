@@ -1,0 +1,23 @@
+<a href="/admin/turfs/new" class="btn btn-success mb-3"><i class="fa-solid fa-plus"></i> Add Turf</a>
+<div class="card p-3">
+  <table class="table align-middle">
+    <thead><tr><th>Image</th><th>Name</th><th>Type</th><th>Price/hr</th><th>Active</th><th></th></tr></thead>
+    <tbody>
+      <% turfs.forEach(t => { %>
+        <tr>
+          <td><img src="<%= t.image %>" width="60" height="45" style="object-fit:cover;border-radius:6px;" onerror="this.src='https://placehold.co/60x45'"></td>
+          <td><%= t.name %></td>
+          <td><%= t.type %></td>
+          <td>৳<%= t.pricePerHour %></td>
+          <td><span class="badge bg-<%= t.isActive?'success':'secondary' %>"><%= t.isActive?'Active':'Inactive' %></span></td>
+          <td>
+            <a href="/admin/turfs/<%= t.id %>/edit" class="btn btn-sm btn-outline-primary">Edit</a>
+            <form action="/admin/turfs/<%= t.id %>/delete" method="POST" class="d-inline" onsubmit="return confirm('Delete this turf?')">
+              <button class="btn btn-sm btn-outline-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

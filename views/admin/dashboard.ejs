@@ -1,0 +1,30 @@
+<div class="row g-3 mb-4">
+  <div class="col-md-2"><div class="card stat-card p-3"><small class="text-muted">Total Bookings</small><h3><%= totalBookings %></h3></div></div>
+  <div class="col-md-2"><div class="card stat-card p-3"><small class="text-muted">Today's Bookings</small><h3><%= todayBookings %></h3></div></div>
+  <div class="col-md-2"><div class="card stat-card p-3"><small class="text-muted">Upcoming</small><h3><%= upcomingBookings %></h3></div></div>
+  <div class="col-md-2"><div class="card stat-card p-3"><small class="text-muted">Users</small><h3><%= totalUsers %></h3></div></div>
+  <div class="col-md-2"><div class="card stat-card p-3"><small class="text-muted">Turfs</small><h3><%= totalTurfs %></h3></div></div>
+  <div class="col-md-2"><div class="card stat-card p-3 bg-success text-white"><small>Total Revenue</small><h3>৳<%= totalRevenue %></h3></div></div>
+</div>
+
+<div class="card p-3">
+  <h5>Recent Bookings</h5>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead><tr><th>Ref</th><th>User</th><th>Turf</th><th>Date</th><th>Time</th><th>Status</th><th>Payment</th></tr></thead>
+      <tbody>
+        <% recentBookings.forEach(b => { %>
+          <tr>
+            <td><%= b.bookingRef %></td>
+            <td><%= b.User ? b.User.name : '-' %></td>
+            <td><%= b.Turf ? b.Turf.name : '-' %></td>
+            <td><%= b.date %></td>
+            <td><%= b.startTime %>-<%= b.endTime %></td>
+            <td><span class="badge bg-<%= b.status==='confirmed'?'success':b.status==='pending'?'warning':'secondary' %>"><%= b.status %></span></td>
+            <td><%= b.Payment ? b.Payment.status : '-' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

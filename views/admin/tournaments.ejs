@@ -1,0 +1,158 @@
+<div class="row g-4">
+  <!-- ---------------- Create / Edit form ---------------- -->
+  <div class="col-lg-4">
+    <div class="card p-3">
+      <h5><%= editing ? 'Edit Tournament' : 'New Tournament' %></h5>
+      <form method="POST" action="<%= editing ? '/admin/tournaments/' + editing.id : '/admin/tournaments' %>" enctype="multipart/form-data">
+        <div class="mb-2">
+          <label class="form-label small mb-1">Name</label>
+          <input name="name" class="form-control" value="<%= editing ? editing.name : '' %>" placeholder="Tournament Name" required>
+        </div>
+        <div class="row g-2">
+          <div class="col-6 mb-2">
+            <label class="form-label small mb-1">Sport</label>
+            <select name="sport" class="form-select">
+              <% ['Football','Cricket'].forEach(s => { %>
+                <option value="<%= s %>" <%= editing && editing.sport === s ? 'selected' : '' %>><%= s %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="col-6 mb-2">
+            <label class="form-label small mb-1">Status</label>
+            <select name="status" class="form-select">
+              <% ['upcoming','ongoing','completed','cancelled'].forEach(s => { %>
+                <option value="<%= s %>" <%= editing && editing.status === s ? 'selected' : '' %>><%= s %></option>
+              <% }) %>
+            </select>
+          </div>
+        </div>
+        <div class="row g-2">
+          <div class="col-6 mb-2">
+            <label class="form-label small mb-1">Start Date</label>
+            <input type="date" name="startDate" class="form-control" value="<%= editing ? editing.startDate : '' %>" required>
+          </div>
+          <div class="col-6 mb-2">
+            <label class="form-label small mb-1">End Date</label>
+            <input type="date" name="endDate" class="form-control" value="<%= editing ? editing.endDate : '' %>" required>
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small mb-1">Registration Deadline</label>
+          <input type="date" name="registrationDeadline" class="form-control" value="<%= editing && editing.registrationDeadline ? editing.registrationDeadline : '' %>">
+        </div>
+        <div class="row g-2">
+          <div class="col-6 mb-2">
+            <label class="form-label small mb-1">Entry Fee (৳)</label>
+            <input type="number" min="0" step="1" name="entryFee" class="form-control" value="<%= editing ? editing.entryFee : 0 %>">
+          </div>
+          <div class="col-6 mb-2">
+            <label class="form-label small mb-1">Prize Money (৳)</label>
+            <input type="number" min="0" step="1" name="prizeMoney" class="form-control" value="<%= editing ? editing.prizeMoney : 0 %>">
+          </div>
+        </div>
+        <div class="row g-2">
+          <div class="col-6 mb-2">
+            <label class="form-label small mb-1">Max Teams</label>
+            <input type="number" min="2" name="maxTeams" class="form-control" value="<%= editing ? editing.maxTeams : 16 %>">
+          </div>
+          <div class="col-6 mb-2">
+            <label class="form-label small mb-1">Players / Team</label>
+            <input type="number" min="1" name="teamSize" class="form-control" value="<%= editing ? editing.teamSize : 7 %>">
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small mb-1">Venue</label>
+          <input name="venue" class="form-control" value="<%= editing && editing.venue ? editing.venue : '' %>" placeholder="e.g. Apnar Turf, Mirpur">
+        </div>
+        <div class="mb-2">
+          <label class="form-label small mb-1">Description</label>
+          <textarea name="description" class="form-control" rows="2"><%= editing && editing.description ? editing.description : '' %></textarea>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small mb-1">Rules (one per line)</label>
+          <textarea name="rules" class="form-control" rows="3" placeholder="Each match is 2 x 15 minutes&#10;Studs not allowed"><%= editing && editing.rules ? editing.rules : '' %></textarea>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small mb-1">Image</label>
+          <input type="file" name="image" class="form-control" accept="image/*">
+        </div>
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" name="registrationOpen" id="regOpen" <%= !editing || editing.registrationOpen ? 'checked' : '' %>>
+          <label class="form-check-label small" for="regOpen">Registration open</label>
+        </div>
+        <button class="btn btn-success w-100"><%= editing ? 'Save Changes' : 'Create Tournament' %></button>
+        <% if (editing) { %>
+          <a href="/admin/tournaments" class="btn btn-link btn-sm w-100 mt-1">Cancel edit</a>
+        <% } %>
+      </form>
+    </div>
+  </div>
+
+  <!-- ---------------- Listing ---------------- -->
+  <div class="col-lg-8">
+    <div class="card p-3 mb-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="text-muted small">Entry fees collected (verified)</div>
+          <div class="fs-4 fw-bold text-success">৳<%= entryFeeRevenue %></div>
+        </div>
+        <a href="/admin/payments?purpose=tournament" class="btn btn-outline-success btn-sm">Tournament Payments</a>
+      </div>
+    </div>
+
+    <div class="card p-3">
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr><th>Name</th><th>Sport</th><th>Dates</th><th>Fee</th><th>Teams</th><th>Reg.</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+            <% if (tournaments.length === 0) { %>
+              <tr><td colspan="8" class="text-muted text-center py-3">No tournaments yet.</td></tr>
+            <% } %>
+            <% tournaments.forEach(t => { %>
+              <% const active = t.Teams.filter(x => ['pending','confirmed'].includes(x.status)).length; %>
+              <% const confirmed = t.Teams.filter(x => x.status === 'confirmed').length; %>
+              <% const pending = t.Teams.filter(x => x.status === 'pending').length; %>
+              <tr>
+                <td class="fw-semibold"><%= t.name %></td>
+                <td><%= t.sport %></td>
+                <td class="small"><%= t.startDate %><br><%= t.endDate %></td>
+                <td><%= t.entryFee > 0 ? '৳' + t.entryFee : 'Free' %></td>
+                <td>
+                  <%= active %>/<%= t.maxTeams %>
+                  <% if (pending > 0) { %><br><span class="badge bg-warning text-dark"><%= pending %> pending</span><% } %>
+                  <% if (confirmed > 0) { %><br><span class="badge bg-success"><%= confirmed %> confirmed</span><% } %>
+                </td>
+                <td>
+                  <form action="/admin/tournaments/<%= t.id %>/toggle-registration" method="POST">
+                    <button class="btn btn-sm btn-<%= t.registrationOpen ? 'success' : 'outline-secondary' %>">
+                      <%= t.registrationOpen ? 'Open' : 'Closed' %>
+                    </button>
+                  </form>
+                </td>
+                <td>
+                  <form action="/admin/tournaments/<%= t.id %>/status" method="POST" class="d-flex gap-1">
+                    <select name="status" class="form-select form-select-sm">
+                      <% ['upcoming','ongoing','completed','cancelled'].forEach(s => { %>
+                        <option value="<%= s %>" <%= t.status === s ? 'selected' : '' %>><%= s %></option>
+                      <% }) %>
+                    </select>
+                    <button class="btn btn-sm btn-outline-success">Set</button>
+                  </form>
+                </td>
+                <td class="text-nowrap">
+                  <a href="/admin/tournaments/<%= t.id %>/teams" class="btn btn-sm btn-outline-primary" title="Manage teams"><i class="fa-solid fa-people-group"></i></a>
+                  <a href="/admin/tournaments/<%= t.id %>/edit" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="fa-solid fa-pen"></i></a>
+                  <form action="/admin/tournaments/<%= t.id %>/delete" method="POST" class="d-inline" onsubmit="return confirm('Delete this tournament?')">
+                    <button class="btn btn-sm btn-outline-danger" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

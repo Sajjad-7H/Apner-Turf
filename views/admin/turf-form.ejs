@@ -1,0 +1,43 @@
+<form method="POST" action="<%= turf ? '/admin/turfs/'+turf.id : '/admin/turfs' %>" enctype="multipart/form-data" class="card p-4">
+  <div class="row g-3">
+    <div class="col-md-6"><label class="form-label">Turf Name</label><input name="name" class="form-control" value="<%= turf ? turf.name : '' %>" required></div>
+    <div class="col-md-3">
+      <label class="form-label">Type</label>
+      <select name="type" class="form-select">
+        <% ['Football','Cricket','Both'].forEach(t=>{ %><option <%= turf && turf.type===t?'selected':'' %>><%= t %></option><% }) %>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Indoor/Outdoor</label>
+      <select name="indoorOutdoor" class="form-select">
+        <% ['Indoor','Outdoor'].forEach(t=>{ %><option <%= turf && turf.indoorOutdoor===t?'selected':'' %>><%= t %></option><% }) %>
+      </select>
+    </div>
+    <div class="col-md-3"><label class="form-label">Capacity</label><input type="number" name="capacity" class="form-control" value="<%= turf ? turf.capacity : 10 %>"></div>
+    <div class="col-md-9"><label class="form-label">Location</label><input name="location" class="form-control" value="<%= turf ? turf.location : '' %>"></div>
+    <div class="col-12"><label class="form-label">Google Map Embed URL (optional)</label><input name="mapEmbedUrl" class="form-control" value="<%= turf ? turf.mapEmbedUrl : '' %>" placeholder="https://www.google.com/maps/embed?..."></div>
+
+    <div class="col-md-3"><label class="form-label">Price/hr (৳)</label><input type="number" name="pricePerHour" class="form-control" value="<%= turf ? turf.pricePerHour : 1000 %>" required></div>
+    <div class="col-md-3"><label class="form-label">Weekend Price (৳)</label><input type="number" name="weekendPrice" class="form-control" value="<%= turf && turf.weekendPrice ? turf.weekendPrice : '' %>" placeholder="optional"></div>
+    <div class="col-md-3"><label class="form-label">Peak-hour Price (৳)</label><input type="number" name="peakHourPrice" class="form-control" value="<%= turf && turf.peakHourPrice ? turf.peakHourPrice : '' %>" placeholder="optional"></div>
+    <div class="col-md-3"></div>
+
+    <div class="col-md-3"><label class="form-label">Peak Start</label><input type="time" name="peakHourStart" class="form-control" value="<%= turf ? turf.peakHourStart : '18:00' %>"></div>
+    <div class="col-md-3"><label class="form-label">Peak End</label><input type="time" name="peakHourEnd" class="form-control" value="<%= turf ? turf.peakHourEnd : '22:00' %>"></div>
+    <div class="col-md-3"><label class="form-label">Opening Time</label><input type="time" name="openingTime" class="form-control" value="<%= turf ? turf.openingTime : '06:00' %>"></div>
+    <div class="col-md-3"><label class="form-label">Closing Time (24:00 = midnight)</label><input name="closingTime" class="form-control" value="<%= turf ? turf.closingTime : '24:00' %>"></div>
+
+    <div class="col-12"><label class="form-label">Facilities (comma separated)</label><input name="facilities" class="form-control" value="<%= turf ? JSON.parse(turf.facilities||'[]').join(', ') : '' %>" placeholder="Parking, Changing Room, Washroom, Flood Light, Drinking Water, Canteen"></div>
+    <div class="col-12"><label class="form-label">Description</label><textarea name="description" class="form-control" rows="3"><%= turf ? turf.description : '' %></textarea></div>
+    <div class="col-md-6"><label class="form-label">Image</label><input type="file" name="image" class="form-control"></div>
+    <% if (turf) { %>
+    <div class="col-md-6 d-flex align-items-end">
+      <div class="form-check">
+        <input type="checkbox" class="form-check-input" name="isActive" id="isActive" <%= turf.isActive?'checked':'' %>>
+        <label class="form-check-label" for="isActive">Active (visible to users)</label>
+      </div>
+    </div>
+    <% } %>
+  </div>
+  <button class="btn btn-success mt-4"><%= turf ? 'Update Turf' : 'Add Turf' %></button>
+</form>

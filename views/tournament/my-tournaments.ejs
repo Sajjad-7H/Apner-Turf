@@ -1,0 +1,47 @@
+<div class="container my-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">My Tournaments</h2>
+    <a href="/tournaments" class="btn btn-outline-success btn-sm">Browse Tournaments</a>
+  </div>
+
+  <% if (teams.length === 0) { %>
+    <p class="text-muted">You haven't registered any team yet. <a href="/tournaments">Join a tournament</a>.</p>
+  <% } else { %>
+    <div class="table-responsive">
+      <table class="table table-hover bg-white align-middle">
+        <thead>
+          <tr><th>Ref</th><th>Tournament</th><th>Team</th><th>Dates</th><th>Entry Fee</th><th>Status</th><th>Payment</th><th></th></tr>
+        </thead>
+        <tbody>
+          <% teams.forEach(t => { %>
+            <tr>
+              <td class="small"><%= t.regRef %></td>
+              <td><%= t.Tournament ? t.Tournament.name : '-' %></td>
+              <td class="fw-semibold"><%= t.name %></td>
+              <td class="small"><%= t.Tournament ? t.Tournament.startDate + ' → ' + t.Tournament.endDate : '-' %></td>
+              <td><%= t.entryFeeAmount > 0 ? '৳' + t.entryFeeAmount : 'Free' %></td>
+              <td>
+                <span class="badge bg-<%= t.status==='confirmed'?'success':t.status==='pending'?'warning':'danger' %>"><%= t.status %></span>
+              </td>
+              <td>
+                <% if (t.Payment) { %>
+                  <span class="badge bg-<%= t.Payment.status==='paid'?'success':t.Payment.status==='pending'?'warning':'danger' %>"><%= t.Payment.status %></span>
+                <% } else { %>
+                  <span class="text-muted small">—</span>
+                <% } %>
+              </td>
+              <td class="text-nowrap">
+                <a href="/my-tournaments/<%= t.id %>" class="btn btn-sm btn-outline-success">View</a>
+                <% if (t.status === 'pending' || t.status === 'confirmed') { %>
+                  <form action="/my-tournaments/<%= t.id %>/withdraw" method="POST" class="d-inline" onsubmit="return confirm('Withdraw this team from the tournament?')">
+                    <button class="btn btn-sm btn-outline-danger">Withdraw</button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>

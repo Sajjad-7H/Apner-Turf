@@ -1,0 +1,13 @@
+<div class="auth-shell login-shell">
+  <section class="auth-panel">
+    <div class="auth-brand"><span><i class="fa-solid fa-futbol"></i></span><strong><%= settings.siteName %></strong></div>
+    <h1>Welcome back</h1>
+    <p class="auth-subtitle">Log in to continue to your turf booking.</p>
+    <form method="POST" action="/login" class="auth-form login-form">
+      <div class="auth-field"><label for="login-id">Email or Phone</label><input id="login-id" name="emailOrPhone" placeholder="Enter your email or phone" autocomplete="username" required></div>
+      <div class="auth-field"><label for="login-password">Password</label><input id="login-password" type="password" name="password" placeholder="Enter your password" autocomplete="current-password" required></div>
+      <button class="auth-submit" type="submit">Log in <i class="fa-solid fa-arrow-right"></i></button>
+    </form>
+    <p class="auth-switch">New to <%= settings.siteName %>? <a href="/register">Create an account</a></p>
+  </div>
+</div>

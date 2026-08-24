@@ -1,0 +1,77 @@
+<p class="text-muted">Prices, bookings and blocked-off times all come together here. Block a slot to take it off the booking calendar (maintenance, private event, etc.) even if no one has booked it — or free up a slot you blocked earlier.</p>
+
+<form class="row g-2 mb-4" method="GET" action="/admin/slots">
+  <div class="col-auto">
+    <select name="turfId" class="form-select" onchange="this.form.submit()">
+      <% turfs.forEach(t => { %>
+        <option value="<%= t.id %>" <%= selectedTurfId===t.id?'selected':'' %>><%= t.name %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="col-auto">
+    <input type="date" name="date" class="form-control" value="<%= selectedDate %>" onchange="this.form.submit()">
+  </div>
+</form>
+
+<div class="d-flex gap-3 mb-3 small">
+  <span><span class="badge bg-success">&nbsp;</span> Available</span>
+  <span><span class="badge" style="background:#dc3545">&nbsp;</span> Booked (confirmed)</span>
+  <span><span class="badge" style="background:#ffc107">&nbsp;</span> Pending payment</span>
+  <span><span class="badge" style="background:#6c757d">&nbsp;</span> Blocked by admin</span>
+</div>
+
+<div class="row g-3">
+  <% slotRows.forEach(s => { %>
+    <div class="col-md-3 col-sm-4 col-6">
+      <div class="card p-3 h-100 <%=
+        s.status==='available' ? 'border-success' :
+        s.status==='booked' ? 'border-danger' :
+        s.status==='pending' ? 'border-warning' : 'border-secondary'
+      %>">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <strong><%= s.startTime %> - <%= s.endTime %></strong>
+          <span class="badge bg-<%=
+            s.status==='available' ? 'success' :
+            s.status==='booked' ? 'danger' :
+            s.status==='pending' ? 'warning' : 'secondary'
+          %>"><%= s.status %></span>
+        </div>
+        <div class="small text-muted mb-2">৳<%= s.price %></div>
+
+        <% if (s.status === 'available') { %>
+          <form method="POST" action="/admin/slots/block">
+            <input type="hidden" name="turfId" value="<%= selectedTurfId %>">
+            <input type="hidden" name="date" value="<%= selectedDate %>">
+            <input type="hidden" name="startTime" value="<%= s.startTime %>">
+            <input type="hidden" name="endTime" value="<%= s.endTime %>">
+            <input type="text" name="reason" class="form-control form-control-sm mb-2" placeholder="Reason (optional)">
+            <button class="btn btn-sm btn-outline-secondary w-100">Block Slot</button>
+          </form>
+        <% } else if (s.status === 'blocked') { %>
+          <p class="small mb-2">Reason: <%= s.block.reason || '-' %></p>
+          <form method="POST" action="/admin/slots/unblock">
+            <input type="hidden" name="turfId" value="<%= selectedTurfId %>">
+            <input type="hidden" name="date" value="<%= selectedDate %>">
+            <input type="hidden" name="startTime" value="<%= s.startTime %>">
+            <button class="btn btn-sm btn-outline-success w-100">Unblock</button>
+          </form>
+        <% } else if (s.booking) { %>
+          <p class="small mb-2">
+            <%= s.booking.User ? s.booking.User.name : 'User' %><br>
+            Ref: <%= s.booking.bookingRef %>
+          </p>
+          <div class="d-flex gap-1">
+            <a href="/admin/bookings?status=<%= s.booking.status %>" class="btn btn-sm btn-outline-primary flex-fill">Details</a>
+            <form method="POST" action="/admin/slots/cancel-booking" onsubmit="return confirm('Cancel this booking and free the slot?')">
+              <input type="hidden" name="bookingId" value="<%= s.booking.id %>">
+              <input type="hidden" name="turfId" value="<%= selectedTurfId %>">
+              <input type="hidden" name="date" value="<%= selectedDate %>">
+              <button class="btn btn-sm btn-outline-danger">Free</button>
+            </form>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  <% }) %>
+  <% if (slotRows.length === 0) { %><p class="text-muted">No turf selected or no slots configured.</p><% } %>
+</div>

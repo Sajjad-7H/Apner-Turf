@@ -1,0 +1,70 @@
+<div class="d-flex gap-2 mb-3">
+  <a href="/admin/payments" class="btn btn-sm btn-<%= purposeFilter === '' ? 'success' : 'outline-success' %>">All</a>
+  <a href="/admin/payments?purpose=booking" class="btn btn-sm btn-<%= purposeFilter === 'booking' ? 'success' : 'outline-success' %>">Turf Bookings</a>
+  <a href="/admin/payments?purpose=tournament" class="btn btn-sm btn-<%= purposeFilter === 'tournament' ? 'success' : 'outline-success' %>">Tournament Entry Fees</a>
+</div>
+
+<div class="card p-3">
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr><th>Invoice</th><th>For</th><th>User</th><th>Details</th><th>Method</th><th>Amount</th><th>Status</th><th>Payment Info</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% if (payments.length === 0) { %>
+          <tr><td colspan="9" class="text-muted text-center py-4">No payments found.</td></tr>
+        <% } %>
+        <% payments.forEach(p => { %>
+          <% const isTournament = !!p.Team; %>
+          <tr>
+            <td class="small"><%= p.invoiceNo %></td>
+            <td>
+              <span class="badge bg-<%= isTournament ? 'info text-dark' : 'primary' %>">
+                <%= isTournament ? 'Tournament' : 'Booking' %>
+              </span>
+            </td>
+            <td>
+              <% if (isTournament) { %>
+                <%= p.Team.User ? p.Team.User.name : '-' %>
+              <% } else { %>
+                <%= p.Booking && p.Booking.User ? p.Booking.User.name : '-' %>
+              <% } %>
+            </td>
+            <td class="small">
+              <% if (isTournament) { %>
+                <strong><%= p.Team.name %></strong><br>
+                <%= p.Team.Tournament ? p.Team.Tournament.name : '-' %><br>
+                <span class="text-muted"><%= p.Team.regRef %></span>
+                <% if (p.Team.Tournament) { %>
+                  <br><a href="/admin/tournaments/<%= p.Team.Tournament.id %>/teams" class="small">Manage teams</a>
+                <% } %>
+              <% } else if (p.Booking) { %>
+                <strong><%= p.Booking.Turf ? p.Booking.Turf.name : '-' %></strong><br>
+                <%= p.Booking.date %> <%= p.Booking.startTime %>-<%= p.Booking.endTime %><br>
+                <span class="text-muted"><%= p.Booking.bookingRef %></span>
+              <% } else { %>
+                <span class="text-muted">-</span>
+              <% } %>
+            </td>
+            <td><%= p.method %></td>
+            <td class="fw-bold">৳<%= p.amount %></td>
+            <td><span class="badge bg-<%= p.status==='paid'?'success':p.status==='pending'?'warning text-dark':'danger' %>"><%= p.status %></span></td>
+            <td class="small"><strong>Txn:</strong> <%= p.transactionId || '-' %><br><strong>Payer:</strong> <%= p.payerName || '-' %> (<%= p.payerNumber || '-' %>)</td>
+            <td>
+              <form action="/admin/payments/<%= p.id %>/status" method="POST" class="d-flex gap-1">
+                <input type="hidden" name="purpose" value="<%= purposeFilter %>">
+                <select name="status" class="form-select form-select-sm">
+                  <% ['pending','paid','failed','refunded'].forEach(s=>{ %><option value="<%=s%>" <%= p.status===s?'selected':'' %>><%=s%></option><% }) %>
+                </select>
+                <button class="btn btn-sm btn-outline-success">Update</button>
+              </form>
+              <% if (isTournament) { %>
+                <div class="form-text small">Marking <em>paid</em> confirms the team.</div>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
