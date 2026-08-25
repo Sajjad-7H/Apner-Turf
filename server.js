@@ -49,7 +49,32 @@ async function migrate() {
   const isSqlite = sequelize.getDialect() === 'sqlite';
   if (isSqlite) await sequelize.query('PRAGMA foreign_keys = OFF');
   try {
-    await sequelize.sync({ alter: true });
+    // Neon's serverless Postgres endpoint occasionally drops the very first TLS
+    // handshake on a cold Vercel function instance (ECONNRESET / "Client network
+    // socket disconnected before secure TLS connection was established"). A short
+    // retry clears this up instead of surfacing a 500 to whoever's request woke
+    // this instance up.
+    let lastErr;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await sequelize.authenticate();
+        lastErr = null;
+        break;
+      } catch (err) {
+        lastErr = err;
+        console.warn(`[db] Connection attempt ${attempt} failed: ${err.message}`);
+        await new Promise(r => setTimeout(r, 1000 * attempt));
+      }
+    }
+    if (lastErr) throw lastErr;
+
+    // sync() (not alter:true) - alter tries to add/drop constraints on every cold
+    // start, which is slow and throws if Postgres's actual constraint name doesn't
+    // match what Sequelize expects (schema drift from earlier deploys/syncs - this
+    // is what caused "constraint SlotBlocks_TurfId_fkey does not exist"). sync()
+    // only creates tables that don't exist yet, which is enough since the schema
+    // is already established.
+    await sequelize.sync();
   } finally {
     if (isSqlite) await sequelize.query('PRAGMA foreign_keys = ON');
   }
