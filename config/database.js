@@ -1,6 +1,10 @@
 require('dotenv').config();
 const { Sequelize } = require('sequelize');
+require('pg'); // force Vercel to bundle this - Sequelize requires it dynamically, which the build tracer misses
 
+// If a Postgres connection string is present (e.g. from the Vercel Postgres / Neon
+// integration) but DB_DIALECT wasn't explicitly set, default to postgres instead of
+// sqlite - sqlite's file storage doesn't work on Vercel's read-only serverless filesystem.
 const hasPostgresUrl = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL);
 const dialect = process.env.DB_DIALECT || (hasPostgresUrl ? 'postgres' : 'sqlite');
 
