@@ -34,7 +34,10 @@ const Turf = sequelize.define('Turf', {
   openingTime: { type: DataTypes.STRING, defaultValue: '06:00' },
   closingTime: { type: DataTypes.STRING, defaultValue: '24:00' },
   description: { type: DataTypes.TEXT },
-  image: { type: DataTypes.STRING, defaultValue: '/img/turf-placeholder.jpg' },
+  // TEXT, not STRING - STRING is VARCHAR(255) in Postgres, and an uploaded image stored as a
+  // base64 data URI is thousands of characters long, so STRING would reject every real upload
+  // with "value too long for type character varying(255)".
+  image: { type: DataTypes.TEXT, defaultValue: '/img/turf-placeholder.jpg' },
   facilities: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON array string
   isActive: { type: DataTypes.BOOLEAN, defaultValue: true }
 });
@@ -67,9 +70,6 @@ const Payment = sequelize.define('Payment', {
   payerName: { type: DataTypes.STRING, allowNull: true },
   payerNumber: { type: DataTypes.STRING, allowNull: true },
   invoiceNo: { type: DataTypes.STRING, unique: true },
-  // A payment belongs to EITHER a Booking (turf slot) or a Team (tournament entry fee).
-  // `purpose` says which, so the admin payments screen can render the right columns
-  // without having to guess from whichever foreign key happens to be null.
   purpose: { type: DataTypes.ENUM('booking', 'tournament'), defaultValue: 'booking' }
 });
 
@@ -105,7 +105,9 @@ const Tournament = sequelize.define('Tournament', {
   venue: { type: DataTypes.STRING, allowNull: true },
   rules: { type: DataTypes.TEXT, allowNull: true },
   description: { type: DataTypes.TEXT },
-  image: { type: DataTypes.STRING, defaultValue: '/img/tournament-placeholder.jpg' },
+  // TEXT for the same reason as Turf.image above - a base64-encoded upload is far longer than
+  // Postgres's default VARCHAR(255) allows.
+  image: { type: DataTypes.TEXT, defaultValue: '/img/tournament-placeholder.jpg' },
   registrationOpen: { type: DataTypes.BOOLEAN, defaultValue: true },
   status: { type: DataTypes.ENUM('upcoming', 'ongoing', 'completed', 'cancelled'), defaultValue: 'upcoming' }
 });
@@ -117,15 +119,8 @@ const Team = sequelize.define('Team', {
   captainPhone: { type: DataTypes.STRING },
   captainEmail: { type: DataTypes.STRING, allowNull: true },
   players: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON array of player names
-  // TR-XXXXXXX shown to the user. NOT declared `unique: true` here: SQLite cannot
-  // ALTER TABLE ADD a UNIQUE column, so adding this field to an existing Teams table would
-  // fail on every start. The unique index is created separately in utils/dbFix.js instead.
   regRef: { type: DataTypes.STRING },
   entryFeeAmount: { type: DataTypes.FLOAT, defaultValue: 0 },
-  // pending  -> fee submitted, waiting for admin to verify the payment
-  // confirmed-> admin verified the payment (or the tournament was free)
-  // rejected -> admin could not verify the payment
-  // withdrawn-> the captain pulled the team out
   status: { type: DataTypes.ENUM('pending', 'confirmed', 'rejected', 'withdrawn'), defaultValue: 'pending' },
   qrCode: { type: DataTypes.TEXT, allowNull: true },
   notes: { type: DataTypes.STRING, allowNull: true }
@@ -138,7 +133,6 @@ const SlotBlock = sequelize.define('SlotBlock', {
   endTime: { type: DataTypes.STRING, allowNull: false },
   reason: { type: DataTypes.STRING, allowNull: true }
 });
-// Same note as Booking above: composite unique index added manually in utils/dbFix.js.
 
 // ---------- Notification ----------
 const Notification = sequelize.define('Notification', {
