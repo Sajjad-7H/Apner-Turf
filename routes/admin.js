@@ -13,11 +13,17 @@ const { getAllSettings, setSetting } = require('../utils/helpers');
 
 router.use(requireAdmin);
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, '..', 'public', 'uploads')),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname.replace(/\s+/g, '_'))
-});
-const upload = multer({ storage });
+// Vercel's serverless filesystem is read-only (except /tmp, which is ephemeral and not
+// shared between function instances), so writing uploaded files to public/uploads with
+// diskStorage fails with EROFS. Instead, keep the file in memory and store it directly in
+// the database as a base64 data URI - no filesystem write needed.
+// Cap at 2MB - Vercel serverless functions reject request bodies over ~4.5MB, and the
+// base64 encoding below adds about 33% on top of the original file size.
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
+
+function fileToDataUri(file) {
+  return file ? `data:${file.mimetype};base64,${file.buffer.toString('base64')}` : null;
+}
 
 // -------- Dashboard --------
 router.get('/dashboard', async (req, res) => {
@@ -67,7 +73,7 @@ router.post('/turfs', upload.single('image'), async (req, res) => {
     peakHourStart: b.peakHourStart || '18:00', peakHourEnd: b.peakHourEnd || '22:00',
     openingTime: b.openingTime || '06:00', closingTime: b.closingTime || '24:00',
     description: b.description,
-    image: req.file ? '/uploads/' + req.file.filename : '/img/turf-placeholder.jpg',
+    image: fileToDataUri(req.file) || '/img/turf-placeholder.jpg',
     facilities: JSON.stringify((b.facilities || '').split(',').map(f => f.trim()).filter(Boolean))
   });
   req.flash('success', 'Turf added.');
@@ -93,7 +99,7 @@ router.post('/turfs/:id', upload.single('image'), async (req, res) => {
     isActive: b.isActive === 'on',
     facilities: JSON.stringify((b.facilities || '').split(',').map(f => f.trim()).filter(Boolean))
   });
-  if (req.file) turf.image = '/uploads/' + req.file.filename;
+  if (req.file) turf.image = fileToDataUri(req.file);
   await turf.save();
   req.flash('success', 'Turf updated.');
   res.redirect('/admin/turfs');
@@ -121,9 +127,6 @@ router.post('/bookings/:id/status', async (req, res) => {
 });
 
 // -------- Slot Availability Management --------
-// Lets the admin see every slot for a turf on a given date (available / booked / pending / blocked)
-// and manually block or free up slots that aren't tied to an actual booking
-// (e.g. turf closed for maintenance, reserved offline, etc).
 router.get('/slots', async (req, res) => {
   const turfs = await Turf.findAll({ order: [['name', 'ASC']] });
   const turfId = req.query.turfId || (turfs[0] ? turfs[0].id : null);
@@ -181,7 +184,6 @@ router.post('/slots/unblock', async (req, res) => {
   res.redirect(`/admin/slots?turfId=${turfId}&date=${date}`);
 });
 
-// Force-cancel an actual booking straight from the slot grid (frees the slot immediately)
 router.post('/slots/cancel-booking', async (req, res) => {
   const { bookingId, turfId, date } = req.body;
   const booking = await Booking.findByPk(bookingId);
@@ -231,7 +233,6 @@ router.post('/payments/:id/status', async (req, res) => {
     payment.status = req.body.status;
     await payment.save();
 
-    // Keep whatever the payment is for in sync with the money
     if (payment.BookingId && req.body.status === 'paid') {
       const booking = await Booking.findByPk(payment.BookingId);
       if (booking) { booking.status = 'confirmed'; await booking.save(); }
@@ -293,7 +294,6 @@ router.post('/coupons/:id/toggle', async (req, res) => {
 router.get('/tournaments', async (req, res) => {
   const tournaments = await Tournament.findAll({ include: [Team], order: [['startDate', 'ASC']] });
 
-  // Entry-fee revenue actually collected (verified payments only)
   const feeRow = await Payment.findOne({
     attributes: [[fn('SUM', col('amount')), 'total']],
     where: { purpose: 'tournament', status: 'paid' },
@@ -308,7 +308,6 @@ router.get('/tournaments', async (req, res) => {
   });
 });
 
-// Same page, with one tournament loaded into the form for editing
 router.get('/tournaments/:id/edit', async (req, res) => {
   const tournaments = await Tournament.findAll({ include: [Team], order: [['startDate', 'ASC']] });
   const editing = await Tournament.findByPk(req.params.id);
@@ -345,10 +344,9 @@ function tournamentFieldsFrom(body) {
 router.post('/tournaments', upload.single('image'), async (req, res) => {
   await Tournament.create({
     ...tournamentFieldsFrom(req.body),
-    // A brand new tournament defaults to open unless the admin unticked the box
     registrationOpen: req.body.registrationOpen !== undefined ? req.body.registrationOpen === 'on' : true,
     status: req.body.status || 'upcoming',
-    image: req.file ? '/uploads/' + req.file.filename : '/img/tournament-placeholder.jpg'
+    image: fileToDataUri(req.file) || '/img/tournament-placeholder.jpg'
   });
   req.flash('success', 'Tournament created.');
   res.redirect('/admin/tournaments');
@@ -359,7 +357,7 @@ router.post('/tournaments/:id', upload.single('image'), async (req, res) => {
   if (!tournament) { req.flash('error', 'Tournament not found.'); return res.redirect('/admin/tournaments'); }
   Object.assign(tournament, tournamentFieldsFrom(req.body));
   if (req.body.status) tournament.status = req.body.status;
-  if (req.file) tournament.image = '/uploads/' + req.file.filename;
+  if (req.file) tournament.image = fileToDataUri(req.file);
   await tournament.save();
   req.flash('success', 'Tournament updated.');
   res.redirect('/admin/tournaments');
@@ -411,8 +409,6 @@ router.get('/tournaments/:id/teams', async (req, res) => {
   });
 });
 
-// Approve / reject a registration. Approving also marks its entry-fee payment paid,
-// so the organiser only has to click in one place.
 router.post('/teams/:id/status', async (req, res) => {
   const team = await Team.findByPk(req.params.id, { include: [Payment, Tournament] });
   if (!team) { req.flash('error', 'Team not found.'); return res.redirect('/admin/tournaments'); }
@@ -423,7 +419,6 @@ router.post('/teams/:id/status', async (req, res) => {
     return res.redirect(`/admin/tournaments/${team.TournamentId}/teams`);
   }
 
-  // Don't confirm a team into a tournament that is already full
   if (status === 'confirmed' && team.status !== 'confirmed') {
     const active = await Team.count({ where: { TournamentId: team.TournamentId, status: ['pending', 'confirmed'] } });
     const alreadyCounted = ['pending', 'confirmed'].includes(team.status);
@@ -492,7 +487,7 @@ router.post('/settings', upload.single('logo'), async (req, res) => {
   for (const key of ['siteName', 'tagline', 'contactEmail', 'contactPhone', 'address', 'facebookUrl', 'primaryColor']) {
     if (b[key] !== undefined) await setSetting(key, b[key]);
   }
-  if (req.file) await setSetting('logo', '/uploads/' + req.file.filename);
+  if (req.file) await setSetting('logo', fileToDataUri(req.file));
   req.flash('success', 'Settings updated.');
   res.redirect('/admin/settings');
 });
