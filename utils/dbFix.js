@@ -13,11 +13,6 @@
 //
 // Safe to run on every server start - all operations are idempotent / best-effort.
 
-// Sequelize's SQLite `changeColumn` rebuilds a table as: create "<name>_backup", copy rows,
-// DROP the original, rename the backup back. If a later model in the same sync() run throws,
-// the process dies mid-sequence and a stale "<name>_backup" table survives. On the NEXT start
-// that leftover still holds a foreign key to the real table, so `DROP TABLE <name>` fails with
-// "FOREIGN KEY constraint failed" and the app can never boot again. Clear them out before sync.
 async function cleanupBackupTables(sequelize) {
   if (sequelize.getDialect() !== 'sqlite') return;
   const tables = await sequelize.query(
@@ -31,11 +26,9 @@ async function cleanupBackupTables(sequelize) {
       { replacements: [base], type: sequelize.QueryTypes.SELECT }
     );
     if (baseExists.length) {
-      // Real table survived - the backup is redundant
       await sequelize.query(`DROP TABLE \`${name}\``);
       console.log(`[dbFix] Dropped stale rebuild leftover "${name}".`);
     } else {
-      // Crash happened between DROP and RENAME - the backup IS the data. Put it back.
       await sequelize.query(`ALTER TABLE \`${name}\` RENAME TO \`${base}\``);
       console.log(`[dbFix] Restored "${base}" from interrupted rebuild leftover "${name}".`);
     }
@@ -49,7 +42,6 @@ async function tableHasBadColumnUnique(sequelize, tableName, columns) {
   );
   if (!rows || !rows[0] || !rows[0].sql) return false;
   const sql = rows[0].sql;
-  // crude but effective: look for "<column> ... UNIQUE" on any of the individual columns
   return columns.some(col => new RegExp('`?' + col + '`?\\s+[^,]*\\bUNIQUE\\b', 'i').test(sql));
 }
 
@@ -91,23 +83,19 @@ async function ensureCompositeUniqueIndex(sequelize, tableName, columns, indexNa
   const qi = sequelize.getQueryInterface();
   try {
     const existing = await qi.showIndex(tableName);
-    if (existing.some(i => i.name === indexName)) return; // already there
+    if (existing.some(i => i.name === indexName)) return;
   } catch (e) { /* showIndex not supported on all dialects the same way - fall through */ }
 
   try {
     await qi.addIndex(tableName, columns, { unique: true, name: indexName });
     console.log(`[dbFix] Created composite unique index ${indexName} on ${tableName}(${columns.join(', ')})`);
   } catch (err) {
-    // Already exists / duplicate key name - safe to ignore
     if (!/duplicate|already exists/i.test(err.message || '')) {
       console.warn(`[dbFix] Could not create index ${indexName} on ${tableName}:`, err.message);
     }
   }
 }
 
-// Teams registered before the entry-fee flow existed have no regRef and no payment record.
-// Give them a reference so they still render on the "My Tournaments" screens, and confirm the
-// ones that owe nothing (free tournaments) instead of leaving them stuck on "pending".
 async function backfillTeamRegistrations(sequelize) {
   const { v4: uuidv4 } = require('uuid');
   const [rows] = await sequelize.query(
@@ -126,7 +114,29 @@ async function backfillTeamRegistrations(sequelize) {
   if (rows && rows.length) console.log(`[dbFix] Backfilled ${rows.length} legacy team registration(s).`);
 }
 
+// We removed sync({alter:true}) (it was crashing on stale constraint names), so Sequelize
+// no longer widens columns on its own when a model's type changes. Turf.image and
+// Tournament.image moved from STRING (VARCHAR(255)) to TEXT so uploaded images (stored as
+// base64 data URIs, which are thousands of characters) fit - but on a database that already
+// has those columns as VARCHAR(255) from an earlier deploy, that change needs to happen here
+// by hand. Safe to run every start: ALTER COLUMN ... TYPE TEXT is a no-op once already TEXT.
+async function widenImageColumnsToText(sequelize) {
+  if (sequelize.getDialect() !== 'postgres') return;
+  for (const { table, column } of [{ table: 'Turfs', column: 'image' }, { table: 'Tournaments', column: 'image' }]) {
+    try {
+      await sequelize.query(`ALTER TABLE "${table}" ALTER COLUMN "${column}" TYPE TEXT`);
+    } catch (err) {
+      if (!/does not exist/i.test(err.message || '')) {
+        console.warn(`[dbFix] Could not widen ${table}.${column} to TEXT:`, err.message);
+      }
+    }
+  }
+}
+
 async function fixDatabase(sequelize) {
+  await widenImageColumnsToText(sequelize).catch(err =>
+    console.warn('[dbFix] Column widening skipped:', err.message));
+
   const targets = [
     { table: 'Bookings', columns: ['TurfId', 'date', 'startTime'], indexName: 'unique_turf_slot' },
     { table: 'SlotBlocks', columns: ['TurfId', 'date', 'startTime'], indexName: 'unique_turf_blocked_slot' }
@@ -143,7 +153,6 @@ async function fixDatabase(sequelize) {
     }
   }
 
-  // Backfill legacy rows FIRST so no NULL/duplicate regRefs are left before the unique index goes on.
   try {
     await backfillTeamRegistrations(sequelize);
     await ensureCompositeUniqueIndex(sequelize, 'Teams', ['regRef'], 'unique_team_reg_ref');
