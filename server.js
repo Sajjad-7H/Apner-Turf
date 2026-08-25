@@ -27,7 +27,27 @@ app.use(express.json());
 app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// On Vercel, each request can be handled by a totally different, isolated server
+// instance - there's no single long-running process. express-session's default
+// MemoryStore keeps sessions in that one instance's RAM, so a login recorded by
+// instance A is invisible to instance B, and the very next click can look logged
+// out (or "Admin access required" even for an admin who just logged in). Storing
+// sessions in Postgres instead makes them visible to every instance.
+let sessionStore;
+if (sequelize.getDialect() === 'postgres') {
+  const pgSession = require('connect-pg-simple')(session);
+  const { Pool } = require('pg');
+  sessionStore = new pgSession({
+    pool: new Pool({
+      connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL,
+      ssl: { require: true, rejectUnauthorized: false }
+    }),
+    createTableIfMissing: true
+  });
+}
+
 app.use(session({
+  store: sessionStore,
   secret: process.env.SESSION_SECRET || 'turf_secret',
   resave: false,
   saveUninitialized: false,
@@ -54,11 +74,6 @@ async function migrate() {
   const isSqlite = sequelize.getDialect() === 'sqlite';
   if (isSqlite) await sequelize.query('PRAGMA foreign_keys = OFF');
   try {
-    // Neon's serverless Postgres endpoint occasionally drops the very first TLS
-    // handshake on a cold Vercel function instance (ECONNRESET / "Client network
-    // socket disconnected before secure TLS connection was established"). A short
-    // retry clears this up instead of surfacing a 500 to whoever's request woke
-    // this instance up.
     let lastErr;
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
@@ -73,12 +88,6 @@ async function migrate() {
     }
     if (lastErr) throw lastErr;
 
-    // sync() (not alter:true) - alter tries to add/drop constraints on every cold
-    // start, which is slow and throws if Postgres's actual constraint name doesn't
-    // match what Sequelize expects (schema drift from earlier deploys/syncs - this
-    // is what caused "constraint SlotBlocks_TurfId_fkey does not exist"). sync()
-    // only creates tables that don't exist yet, which is enough since the schema
-    // is already established.
     await sequelize.sync();
   } finally {
     if (isSqlite) await sequelize.query('PRAGMA foreign_keys = ON');
