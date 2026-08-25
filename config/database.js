@@ -1,4 +1,10 @@
 require('dotenv').config();
+// Vercel's serverless Node runtime resolves DNS with IPv6 preferred by default, and the
+// handshake to Neon's endpoint over IPv6 sometimes drops mid-TLS-negotiation from there,
+// surfacing as "Client network socket disconnected before secure TLS connection was
+// established". Forcing IPv4 resolution avoids that path entirely. Must run before any
+// module (pg included) opens a socket.
+try { require('dns').setDefaultResultOrder('ipv4first'); } catch (e) { /* older Node without this API - ignore */ }
 const { Sequelize } = require('sequelize');
 require('pg'); // force Vercel to bundle this - Sequelize requires it dynamically, which the build tracer misses
 
