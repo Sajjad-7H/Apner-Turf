@@ -1,5 +1,10 @@
 require('dotenv').config();
 const express = require('express');
+// Patches Express to forward errors thrown inside async route handlers to the error-handling
+// middleware automatically. Without this, an unhandled rejection in an `async (req, res) => {}`
+// route (e.g. a database error) never sends a response at all - the browser just spins forever
+// instead of showing the "Something went wrong" page. Must be required before the routes below.
+require('express-async-errors');
 const session = require('express-session');
 const flash = require('connect-flash');
 const methodOverride = require('method-override');
