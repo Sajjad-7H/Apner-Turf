@@ -122,7 +122,10 @@ async function backfillTeamRegistrations(sequelize) {
 // by hand. Safe to run every start: ALTER COLUMN ... TYPE TEXT is a no-op once already TEXT.
 async function widenImageColumnsToText(sequelize) {
   if (sequelize.getDialect() !== 'postgres') return;
-  for (const { table, column } of [{ table: 'Turfs', column: 'image' }, { table: 'Tournaments', column: 'image' }]) {
+  // Sequelize's default pluralization turns "Turf" into "Turves" (irregular English
+  // plural, same rule as "leaf" -> "leaves") - NOT "Turfs". Confirmed from the actual
+  // failing query logged by Postgres: UPDATE "Turves" SET ...
+  for (const { table, column } of [{ table: 'Turves', column: 'image' }, { table: 'Tournaments', column: 'image' }]) {
     try {
       await sequelize.query(`ALTER TABLE "${table}" ALTER COLUMN "${column}" TYPE TEXT`);
     } catch (err) {
