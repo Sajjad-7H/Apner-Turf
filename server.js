@@ -1,64 +1,100 @@
 require('dotenv').config();
-const { Sequelize } = require('sequelize');
+const express = require('express');
+const session = require('express-session');
+const flash = require('connect-flash');
+const methodOverride = require('method-override');
+const expressLayouts = require('express-ejs-layouts');
+const path = require('path');
 
-// If a Postgres connection string is present (e.g. from the Vercel Postgres / Neon
-// integration) but DB_DIALECT wasn't explicitly set, default to postgres instead of
-// sqlite - sqlite's file storage doesn't work on Vercel's read-only serverless filesystem.
-const hasPostgresUrl = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL);
-const dialect = process.env.DB_DIALECT || (hasPostgresUrl ? 'postgres' : 'sqlite');
+const { sequelize } = require('./models');
+const { getAllSettings } = require('./utils/helpers');
+const { fixDatabase, cleanupBackupTables } = require('./utils/dbFix');
 
-let sequelize;
+const app = express();
 
-if (dialect === 'sqlite') {
-  sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: require('path').join(__dirname, '..', 'database.sqlite'),
-    logging: false,
-    // SQLite serialises writes anyway, and a single connection means the
-    // `PRAGMA foreign_keys` toggle in server.js (which is per-connection) reliably
-    // applies to the connection sync() runs on. It also avoids SQLITE_BUSY errors.
-    pool: { max: 1, min: 0, idle: 10000 }
-  });
-} else if (dialect === 'postgres') {
-  // Vercel Postgres / Neon / Supabase inject a single connection string
-  // (DATABASE_URL, POSTGRES_URL, or POSTGRES_PRISMA_URL) instead of separate
-  // DB_HOST/DB_USER/etc vars. Prefer that when present so the integration's
-  // env vars work with zero extra config.
-  const connectionString =
-    process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL;
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(expressLayouts);
+app.set('layout', 'partials/layout');
 
-  const commonOptions = {
-    dialect: 'postgres',
-    logging: false,
-    pool: { max: 10, min: 0, idle: 10000 },
-    // Managed Postgres hosts (Neon, Vercel Postgres, Aiven, Supabase) require SSL and
-    // present a cert not in Node's default trust store, so verification is relaxed.
-    dialectOptions: {
-      ssl: { require: true, rejectUnauthorized: false }
-    }
-  };
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(methodOverride('_method'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-  sequelize = connectionString
-    ? new Sequelize(connectionString, commonOptions)
-    : new Sequelize(
-        process.env.DB_NAME,
-        process.env.DB_USER,
-        process.env.DB_PASS,
-        { host: process.env.DB_HOST, port: process.env.DB_PORT, ...commonOptions }
-      );
-} else {
-  sequelize = new Sequelize(
-    process.env.DB_NAME,
-    process.env.DB_USER,
-    process.env.DB_PASS,
-    {
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      dialect: 'mysql',
-      logging: false,
-      pool: { max: 10, min: 0, idle: 10000 }
-    }
-  );
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'turf_secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 }
+}));
+app.use(flash());
+
+app.use(async (req, res, next) => {
+  res.locals.currentUser = req.session.user || null;
+  res.locals.success = req.flash('success');
+  res.locals.error = req.flash('error');
+  try {
+    res.locals.settings = await getAllSettings();
+  } catch (e) {
+    res.locals.settings = { siteName: 'Apnar Turf' };
+  }
+  next();
+});
+
+async function migrate() {
+  await cleanupBackupTables(sequelize).catch(err =>
+    console.warn('[dbFix] Backup table cleanup skipped:', err.message));
+
+  const isSqlite = sequelize.getDialect() === 'sqlite';
+  if (isSqlite) await sequelize.query('PRAGMA foreign_keys = OFF');
+  try {
+    await sequelize.sync({ alter: true });
+  } finally {
+    if (isSqlite) await sequelize.query('PRAGMA foreign_keys = ON');
+  }
+  await fixDatabase(sequelize);
 }
 
-module.exports = sequelize;
+const migrationReady = migrate().catch(err => {
+  console.error('Failed to sync database:', err);
+  throw err;
+});
+
+app.use(async (req, res, next) => {
+  try {
+    await migrationReady;
+    next();
+  } catch (err) {
+    res.status(500).send('Database is not ready: ' + err.message);
+  }
+});
+
+app.use('/', require('./routes/auth'));
+app.use('/', require('./routes/public'));
+app.use('/', require('./routes/booking'));
+app.use('/', require('./routes/tournament'));
+app.use('/admin', require('./routes/admin'));
+
+app.use((req, res) => {
+  res.status(404).render('user/404', { title: 'Page Not Found', layout: 'partials/layout' });
+});
+
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).send('Something went wrong: ' + err.message);
+});
+
+const PORT = process.env.PORT || 3000;
+
+if (require.main === module) {
+  migrationReady
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`Turf Booking server running at http://localhost:${PORT}`);
+      });
+    })
+    .catch(() => {});
+}
+
+module.exports = app;
