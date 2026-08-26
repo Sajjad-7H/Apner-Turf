@@ -12,7 +12,7 @@ const expressLayouts = require('express-ejs-layouts');
 const path = require('path');
 
 const { sequelize } = require('./models');
-const { getAllSettings } = require('./utils/helpers');
+const { getAllSettings, hexToRgb } = require('./utils/helpers');
 const { fixDatabase, cleanupBackupTables } = require('./utils/dbFix');
 
 const app = express();
@@ -62,8 +62,11 @@ app.use(async (req, res, next) => {
   try {
     res.locals.settings = await getAllSettings();
   } catch (e) {
-    res.locals.settings = { siteName: 'Apnar Turf' };
+    res.locals.settings = { siteName: 'Apnar Turf', primaryColor: '#14a34a', secondaryColor: '#0d6e2f' };
   }
+  // Lets the layout turn an admin-picked "#rrggbb" color into the "r,g,b" form Bootstrap's
+  // own CSS variables need (e.g. --bs-success-rgb) for the site-wide color theme.
+  res.locals.hexToRgb = hexToRgb;
   next();
 });
 
