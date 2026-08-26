@@ -23,7 +23,22 @@ async function getAllSettings() {
   obj.contactEmail = obj.contactEmail || 'info@apnarturf.com';
   obj.contactPhone = obj.contactPhone || '01700000000';
   obj.address = obj.address || 'Dhaka, Bangladesh';
+  obj.primaryColor = obj.primaryColor || '#14a34a';
+  obj.secondaryColor = obj.secondaryColor || '#0d6e2f';
   return obj;
+}
+
+// Converts a "#rrggbb" (or "#rgb") color into "r,g,b" so it can be dropped into Bootstrap's
+// rgba()-based CSS variables (e.g. --bs-success-rgb). Falls back to the default green if the
+// admin hasn't picked a color yet or typed something invalid.
+function hexToRgb(hex) {
+  const fallback = '20,163,74';
+  if (!hex) return fallback;
+  const clean = String(hex).trim().replace('#', '');
+  const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean;
+  if (!/^[0-9a-fA-F]{6}$/.test(full)) return fallback;
+  const num = parseInt(full, 16);
+  return `${(num >> 16) & 255},${(num >> 8) & 255},${num & 255}`;
 }
 
 // ---- Pricing logic: weekend + peak-hour pricing ----
@@ -98,7 +113,7 @@ function tournamentRegistrationState(tournament, activeTeamCount) {
 }
 
 module.exports = {
-  getSetting, setSetting, getAllSettings,
+  getSetting, setSetting, getAllSettings, hexToRgb,
   calcSlotPrice, isWeekend, isPeakHour,
   generateBookingRef, generateRegRef, generateInvoiceNo, generateTxnId, generateSlots,
   tournamentRegistrationState
