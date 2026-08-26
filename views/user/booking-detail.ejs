@@ -1,7 +1,8 @@
 <style>
   .tk-wrap { max-width: 760px; }
   .tk-page-bg {
-    background: #000;
+    background: #fff;
+    border: 1px solid #e5e0d5;
     border-radius: 18px;
     padding: 34px 20px;
   }
@@ -108,11 +109,13 @@
     position: relative;
     z-index: 2;
   }
+  /* the two half-circle bites that make it look like a real tear-off ticket */
   .tk-notch {
     position: absolute;
     width: 26px;
     height: 26px;
-    background: #000;
+    background: #fff;
+    border: 1px solid #e5e0d5;
     border-radius: 50%;
     left: -13px;
     z-index: 3;
@@ -318,7 +321,7 @@
     const originalText = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = 'Preparing image...';
-    html2canvas(ticket, { backgroundColor: '#000', scale: 2 }).then(function (canvas) {
+    html2canvas(ticket, { backgroundColor: '#fff', scale: 2 }).then(function (canvas) {
       const link = document.createElement('a');
       link.download = 'ticket-<%= booking.bookingRef %>.png';
       link.href = canvas.toDataURL('image/png');
