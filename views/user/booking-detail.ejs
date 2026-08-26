@@ -1,7 +1,7 @@
 <style>
   .tk-wrap { max-width: 760px; }
   .tk-page-bg {
-    background: #2f4858;
+    background: #000;
     border-radius: 18px;
     padding: 34px 20px;
   }
@@ -112,7 +112,7 @@
     position: absolute;
     width: 26px;
     height: 26px;
-    background: #2f4858;
+    background: #000;
     border-radius: 50%;
     left: -13px;
     z-index: 3;
@@ -254,6 +254,10 @@
     </div>
   </div>
 
+  <button type="button" id="downloadTicketBtn" class="btn btn-dark w-100 mt-3">
+    <i class="fa-solid fa-download me-1"></i> Download Ticket
+  </button>
+
   <!-- Supplementary details below the ticket visual -->
   <div class="card p-4 mt-4 shadow-sm tk-status-note">
     <% const steps = ['pending', 'confirmed', 'completed']; const curIdx = steps.indexOf(booking.status); %>
@@ -302,3 +306,30 @@
     </div>
   </div>
 <% } %>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+(function () {
+  const btn = document.getElementById('downloadTicketBtn');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    const ticket = document.querySelector('.tk-page-bg');
+    if (!ticket || typeof html2canvas === 'undefined') return;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'Preparing image...';
+    html2canvas(ticket, { backgroundColor: '#000', scale: 2 }).then(function (canvas) {
+      const link = document.createElement('a');
+      link.download = 'ticket-<%= booking.bookingRef %>.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }).catch(function () {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+      alert('Could not generate the ticket image. Please try again.');
+    });
+  });
+})();
+</script>
