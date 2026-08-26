@@ -1,54 +1,248 @@
-<div class="container my-5" style="max-width:640px;">
-  <div class="card p-4 shadow-sm">
-    <div class="d-flex justify-content-between align-items-start">
-      <h3>Booking <%= booking.bookingRef %></h3>
-      <span class="badge bg-<%= booking.status==='confirmed'?'success':booking.status==='pending'?'warning':'secondary' %> fs-6"><%= booking.status %></span>
-    </div>
-    <hr>
-    <% const steps = ['pending', 'confirmed', 'completed']; const curIdx = steps.indexOf(booking.status); %>
-    <% if (booking.status === 'cancelled') { %>
-      <div class="alert alert-secondary py-2 mb-3">This booking was cancelled.</div>
-    <% } else { %>
-      <div class="d-flex justify-content-between mb-4 small text-center">
-        <% ['Booked', 'Payment Verified', 'Completed'].forEach((label, i) => { %>
-          <div class="flex-fill">
-            <div class="mx-auto rounded-circle d-flex align-items-center justify-content-center mb-1"
-                 style="width:28px;height:28px;background:<%= i <= curIdx ? '#198754' : '#dee2e6' %>;color:#fff;">
-              <%- i < curIdx ? '&#10003;' : (i+1) %>
+<style>
+  .bp-wrap { max-width: 720px; }
+  .boarding-pass {
+    display: flex;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    overflow: visible;
+    position: relative;
+  }
+  .bp-main {
+    flex: 1 1 auto;
+    padding: 28px 26px;
+    min-width: 0;
+  }
+  .bp-stub {
+    flex: 0 0 220px;
+    background: #198754;
+    color: #fff;
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border-top-right-radius: 14px;
+    border-bottom-right-radius: 14px;
+    position: relative;
+  }
+  .bp-divider {
+    position: relative;
+    width: 0;
+    border-left: 2px dashed rgba(255,255,255,0.6);
+  }
+  .bp-divider::before, .bp-divider::after {
+    content: '';
+    position: absolute;
+    left: -12px;
+    width: 24px;
+    height: 24px;
+    background: #f4f6f8;
+    border-radius: 50%;
+  }
+  .bp-divider::before { top: -12px; }
+  .bp-divider::after { bottom: -12px; }
+  .bp-brand {
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    color: #198754;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .bp-status-badge {
+    font-size: 0.75rem;
+    padding: 5px 12px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+  }
+  .bp-steps {
+    display: flex;
+    justify-content: space-between;
+    margin: 20px 0 22px;
+    font-size: 0.78rem;
+  }
+  .bp-step-dot {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 4px;
+    color: #fff;
+    font-size: 0.75rem;
+  }
+  .bp-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 20px;
+    margin-top: 6px;
+  }
+  .bp-field label {
+    display: block;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #8a93a3;
+    margin-bottom: 2px;
+    font-weight: 600;
+  }
+  .bp-field .val {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1b2430;
+  }
+  .bp-field .val.small-val { font-size: 0.9rem; font-weight: 600; }
+  .bp-ref {
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0.85;
+    margin-bottom: 2px;
+  }
+  .bp-ref-code {
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+    word-break: break-all;
+  }
+  .bp-qr-box {
+    background: #fff;
+    padding: 8px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  .bp-qr-box img { width: 120px; display: block; }
+  .bp-scan-note { font-size: 0.72rem; opacity: 0.9; }
+  .bp-total {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px dashed #e2e6ea;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .bp-total .amt { font-size: 1.4rem; font-weight: 800; color: #198754; }
+  @media (max-width: 576px) {
+    .boarding-pass { flex-direction: column; }
+    .bp-stub {
+      border-radius: 0 0 14px 14px;
+      flex: none;
+      padding: 22px 20px 26px;
+    }
+    .bp-divider { display: none; }
+    .bp-main { padding: 24px 20px; }
+    .bp-field-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+
+<div class="container my-5 bp-wrap">
+
+  <div class="boarding-pass">
+    <div class="bp-main">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="bp-brand"><i class="fa-solid fa-futbol"></i> <%= settings.siteName || 'Apnar Turf' %></div>
+        <span class="bp-status-badge bg-<%= booking.status==='confirmed'?'success':booking.status==='pending'?'warning':'secondary' %> text-white"><%= booking.status %></span>
+      </div>
+
+      <% const steps = ['pending', 'confirmed', 'completed']; const curIdx = steps.indexOf(booking.status); %>
+      <% if (booking.status === 'cancelled') { %>
+        <div class="alert alert-secondary py-2 my-3">This booking was cancelled.</div>
+      <% } else { %>
+        <div class="bp-steps">
+          <% ['Booked', 'Payment Verified', 'Completed'].forEach((label, i) => { %>
+            <div class="flex-fill">
+              <div class="bp-step-dot" style="background:<%= i <= curIdx ? '#198754' : '#dee2e6' %>;">
+                <%- i < curIdx ? '&#10003;' : (i+1) %>
+              </div>
+              <div class="<%= i <= curIdx ? 'text-success fw-bold' : 'text-muted' %>"><%= label %></div>
             </div>
-            <div class="<%= i <= curIdx ? 'text-success fw-bold' : 'text-muted' %>"><%= label %></div>
-          </div>
-        <% }) %>
-      </div>
-    <% } %>
-    <p><strong>Turf:</strong> <%= booking.Turf.name %></p>
-    <p><strong>Date:</strong> <%= booking.date %></p>
-    <p><strong>Time:</strong> <%= booking.startTime %> - <%= booking.endTime %></p>
-    <% if (booking.discountAmount > 0) { %><p><strong>Discount:</strong> -৳<%= booking.discountAmount %> (<%= booking.couponCode %>)</p><% } %>
-    <p><strong>Total Paid:</strong> ৳<%= booking.totalPrice %></p>
-    <% if (booking.Payment) { %>
-      <p><strong>Payment Method:</strong> <%= booking.Payment.method %></p>
-      <p><strong>Payment Status:</strong> <%= booking.Payment.status %></p>
-      <p><strong>Invoice No:</strong> <%= booking.Payment.invoiceNo %></p>
-      <p><strong>Transaction ID:</strong> <%= booking.Payment.transactionId || '-' %></p>
-      <p><strong>Payer Name:</strong> <%= booking.Payment.payerName || '-' %></p>
-      <p><strong>Payer Number:</strong> <%= booking.Payment.payerNumber || '-' %></p>
-    <% } %>
-    <% if (booking.notes) { %><p><strong>Notes:</strong> <%= booking.notes %></p><% } %>
+          <% }) %>
+        </div>
+      <% } %>
 
-    <% if (booking.qrCode) { %>
-      <div class="text-center my-3">
-        <p class="text-muted small">Show this QR code at the turf for check-in</p>
-        <img src="<%= booking.qrCode %>" alt="QR Code" style="width:180px;">
+      <div class="bp-field-row">
+        <div class="bp-field">
+          <label>Turf</label>
+          <div class="val"><%= booking.Turf.name %></div>
+        </div>
+        <div class="bp-field">
+          <label>Date</label>
+          <div class="val"><%= booking.date %></div>
+        </div>
+        <div class="bp-field">
+          <label>Time</label>
+          <div class="val"><%= booking.startTime %> – <%= booking.endTime %></div>
+        </div>
+        <% if (booking.discountAmount > 0) { %>
+        <div class="bp-field">
+          <label>Discount</label>
+          <div class="val small-val">-৳<%= booking.discountAmount %> (<%= booking.couponCode %>)</div>
+        </div>
+        <% } %>
+        <% if (booking.Payment) { %>
+        <div class="bp-field">
+          <label>Payment Method</label>
+          <div class="val small-val"><%= booking.Payment.method %></div>
+        </div>
+        <div class="bp-field">
+          <label>Payment Status</label>
+          <div class="val small-val"><%= booking.Payment.status %></div>
+        </div>
+        <div class="bp-field">
+          <label>Invoice No</label>
+          <div class="val small-val"><%= booking.Payment.invoiceNo %></div>
+        </div>
+        <div class="bp-field">
+          <label>Transaction ID</label>
+          <div class="val small-val"><%= booking.Payment.transactionId || '-' %></div>
+        </div>
+        <div class="bp-field">
+          <label>Payer Name</label>
+          <div class="val small-val"><%= booking.Payment.payerName || '-' %></div>
+        </div>
+        <div class="bp-field">
+          <label>Payer Number</label>
+          <div class="val small-val"><%= booking.Payment.payerNumber || '-' %></div>
+        </div>
+        <% } %>
+        <% if (booking.notes) { %>
+        <div class="bp-field" style="grid-column: 1 / -1;">
+          <label>Notes</label>
+          <div class="val small-val"><%= booking.notes %></div>
+        </div>
+        <% } %>
       </div>
-    <% } %>
 
-    <a href="/my-bookings" class="btn btn-outline-success w-100">Back to My Bookings</a>
+      <div class="bp-total">
+        <span class="text-muted small">Total Paid</span>
+        <span class="amt">৳<%= booking.totalPrice %></span>
+      </div>
+    </div>
+
+    <div class="bp-divider"></div>
+
+    <div class="bp-stub">
+      <div class="bp-ref">Booking Ref</div>
+      <div class="bp-ref-code"><%= booking.bookingRef %></div>
+      <% if (booking.qrCode) { %>
+        <div class="bp-qr-box">
+          <img src="<%= booking.qrCode %>" alt="QR Code">
+        </div>
+        <div class="bp-scan-note">Show this QR code<br>at the turf for check-in</div>
+      <% } %>
+    </div>
   </div>
+
+  <a href="/my-bookings" class="btn btn-outline-success w-100 mt-4"><i class="fa-solid fa-arrow-left me-1"></i> Back to My Bookings</a>
 </div>
 
 <% if (booking.Payment && booking.Payment.status === 'pending' && ['bKash','Nagad','Rocket'].includes(booking.Payment.method) && booking.status !== 'confirmed') { %>
-  <div class="container mt-3" style="max-width:640px;">
+  <div class="container mt-3 bp-wrap">
     <div class="card p-3">
       <h5>Submit Payment Details</h5>
       <p class="text-muted small">Send the amount to admin number: <strong><%= settings.contactPhone %></strong> and enter the transaction details below for verification.</p>
