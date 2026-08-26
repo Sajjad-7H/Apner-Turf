@@ -1,248 +1,295 @@
 <style>
-  .bp-wrap { max-width: 720px; }
-  .boarding-pass {
+  .tk-wrap { max-width: 760px; }
+  .tk-page-bg {
+    background: #2f4858;
+    border-radius: 18px;
+    padding: 34px 20px;
+  }
+  .ticket {
     display: flex;
-    background: #fff;
-    border-radius: 14px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-    overflow: visible;
+    position: relative;
+    filter: drop-shadow(0 14px 26px rgba(0,0,0,0.35));
+  }
+  .tk-main, .tk-stub {
+    background: #f2e6c9;
     position: relative;
   }
-  .bp-main {
+  .tk-main {
     flex: 1 1 auto;
-    padding: 28px 26px;
     min-width: 0;
+    border-top-left-radius: 14px;
+    border-bottom-left-radius: 14px;
   }
-  .bp-stub {
-    flex: 0 0 220px;
-    background: #198754;
-    color: #fff;
-    padding: 28px 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
+  .tk-stub {
+    flex: 0 0 200px;
     border-top-right-radius: 14px;
     border-bottom-right-radius: 14px;
-    position: relative;
   }
-  .bp-divider {
-    position: relative;
-    width: 0;
-    border-left: 2px dashed rgba(255,255,255,0.6);
-  }
-  .bp-divider::before, .bp-divider::after {
-    content: '';
-    position: absolute;
-    left: -12px;
-    width: 24px;
-    height: 24px;
-    background: #f4f6f8;
-    border-radius: 50%;
-  }
-  .bp-divider::before { top: -12px; }
-  .bp-divider::after { bottom: -12px; }
-  .bp-brand {
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    color: #198754;
+  .tk-header {
+    background: #c1502e;
+    color: #fff;
+    padding: 12px 18px;
     display: flex;
     align-items: center;
-    gap: 6px;
-  }
-  .bp-status-badge {
-    font-size: 0.75rem;
-    padding: 5px 12px;
-    border-radius: 999px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 700;
-  }
-  .bp-steps {
-    display: flex;
     justify-content: space-between;
-    margin: 20px 0 22px;
-    font-size: 0.78rem;
-  }
-  .bp-step-dot {
-    width: 26px; height: 26px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 4px;
-    color: #fff;
-    font-size: 0.75rem;
-  }
-  .bp-field-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px 20px;
-    margin-top: 6px;
-  }
-  .bp-field label {
-    display: block;
-    font-size: 0.68rem;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: #8a93a3;
-    margin-bottom: 2px;
-    font-weight: 600;
-  }
-  .bp-field .val {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #1b2430;
-  }
-  .bp-field .val.small-val { font-size: 0.9rem; font-weight: 600; }
-  .bp-ref {
-    font-size: 0.72rem;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    opacity: 0.85;
-    margin-bottom: 2px;
-  }
-  .bp-ref-code {
-    font-size: 1.3rem;
     font-weight: 800;
     letter-spacing: 1px;
-    margin-bottom: 14px;
-    word-break: break-all;
+    font-size: 0.85rem;
+    text-transform: uppercase;
   }
-  .bp-qr-box {
+  .tk-main .tk-header { border-top-left-radius: 14px; }
+  .tk-stub .tk-header { border-top-right-radius: 14px; justify-content: center; }
+  .tk-ref-pill {
     background: #fff;
-    padding: 8px;
-    border-radius: 10px;
-    margin-bottom: 10px;
+    color: #c1502e;
+    font-weight: 800;
+    font-size: 0.78rem;
+    letter-spacing: 1px;
+    padding: 4px 14px;
+    border-radius: 999px;
   }
-  .bp-qr-box img { width: 120px; display: block; }
-  .bp-scan-note { font-size: 0.72rem; opacity: 0.9; }
-  .bp-total {
-    margin-top: 18px;
-    padding-top: 16px;
-    border-top: 1px dashed #e2e6ea;
+  .tk-body { padding: 18px 20px 6px; position: relative; }
+  .tk-watermark {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    font-size: 5.5rem;
+    color: rgba(193,80,46,0.08);
+    pointer-events: none;
+  }
+  .tk-row { display: flex; gap: 28px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tk-label {
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #8a6d4a;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .tk-value {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #3b2a1e;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .tk-value.small { font-size: 0.82rem; }
+  .tk-mid {
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    align-items: baseline;
+    gap: 16px;
+    padding: 6px 20px 14px;
   }
-  .bp-total .amt { font-size: 1.4rem; font-weight: 800; color: #198754; }
-  @media (max-width: 576px) {
-    .boarding-pass { flex-direction: column; }
-    .bp-stub {
-      border-radius: 0 0 14px 14px;
-      flex: none;
-      padding: 22px 20px 26px;
-    }
-    .bp-divider { display: none; }
-    .bp-main { padding: 24px 20px; }
-    .bp-field-row { grid-template-columns: 1fr 1fr; }
+  .tk-mini-info { display: flex; gap: 22px; }
+  .tk-qr-box img { width: 84px; height: 84px; display: block; }
+  .tk-bottom-strip {
+    display: flex;
+    border-top: 1.5px dashed #c9b48a;
   }
+  .tk-cell {
+    flex: 1;
+    padding: 10px 12px;
+    border-right: 1.5px dashed #c9b48a;
+  }
+  .tk-cell:last-child { border-right: none; }
+  .tk-cell.price {
+    background: #c1502e;
+    color: #fff;
+    border-bottom-left-radius: 0;
+  }
+  .tk-cell.price .tk-label { color: rgba(255,255,255,0.85); }
+  .tk-cell.price .tk-value { color: #fff; }
+  .tk-main .tk-cell:last-of-type.price { border-bottom-left-radius: 0; }
+
+  .tk-divider {
+    width: 0;
+    border-left: 3px dashed #c1502e;
+    position: relative;
+    z-index: 2;
+  }
+  .tk-notch {
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    background: #2f4858;
+    border-radius: 50%;
+    left: -13px;
+    z-index: 3;
+  }
+  .tk-notch.top { top: -13px; }
+  .tk-notch.bottom { bottom: -13px; }
+
+  .tk-stub .tk-body { padding: 16px 16px 4px; }
+  .tk-stub .tk-row { gap: 14px; margin-bottom: 10px; }
+  .tk-stub .tk-value { font-size: 0.85rem; }
+  .tk-stub .tk-bottom-strip .tk-cell { padding: 8px; }
+  .tk-stub .tk-label { font-size: 0.58rem; }
+
+  @media (max-width: 620px) {
+    .ticket { flex-direction: column; }
+    .tk-main, .tk-stub { border-radius: 0; }
+    .tk-main { border-radius: 14px 14px 0 0; }
+    .tk-stub { border-radius: 0 0 14px 14px; }
+    .tk-divider { display: none; }
+    .tk-mid { flex-direction: column; align-items: flex-start; }
+  }
+
+  .tk-status-note { max-width: 760px; }
 </style>
 
-<div class="container my-5 bp-wrap">
+<div class="container my-5 tk-wrap">
 
-  <div class="boarding-pass">
-    <div class="bp-main">
-      <div class="d-flex justify-content-between align-items-center">
-        <div class="bp-brand"><i class="fa-solid fa-futbol"></i> <%= settings.siteName || 'Apnar Turf' %></div>
-        <span class="bp-status-badge bg-<%= booking.status==='confirmed'?'success':booking.status==='pending'?'warning':'secondary' %> text-white"><%= booking.status %></span>
-      </div>
-
-      <% const steps = ['pending', 'confirmed', 'completed']; const curIdx = steps.indexOf(booking.status); %>
-      <% if (booking.status === 'cancelled') { %>
-        <div class="alert alert-secondary py-2 my-3">This booking was cancelled.</div>
-      <% } else { %>
-        <div class="bp-steps">
-          <% ['Booked', 'Payment Verified', 'Completed'].forEach((label, i) => { %>
-            <div class="flex-fill">
-              <div class="bp-step-dot" style="background:<%= i <= curIdx ? '#198754' : '#dee2e6' %>;">
-                <%- i < curIdx ? '&#10003;' : (i+1) %>
-              </div>
-              <div class="<%= i <= curIdx ? 'text-success fw-bold' : 'text-muted' %>"><%= label %></div>
+  <div class="tk-page-bg">
+    <div class="ticket">
+      <div class="tk-main">
+        <div class="tk-header">
+          <span>Football Ticket</span>
+          <span class="tk-ref-pill">TKT <%= booking.bookingRef %></span>
+        </div>
+        <div class="tk-body">
+          <i class="fa-solid fa-futbol tk-watermark"></i>
+          <div class="tk-row">
+            <div>
+              <div class="tk-label">Player Name</div>
+              <div class="tk-value"><%= currentUser.name %></div>
             </div>
-          <% }) %>
+            <div>
+              <div class="tk-label">Booking Status</div>
+              <div class="tk-value"><%= booking.status %></div>
+            </div>
+          </div>
+          <div class="tk-row">
+            <div>
+              <div class="tk-label">Turf:</div>
+              <div class="tk-value"><%= booking.Turf.name %></div>
+            </div>
+            <div>
+              <div class="tk-label">Time:</div>
+              <div class="tk-value"><%= booking.startTime %> - <%= booking.endTime %></div>
+            </div>
+          </div>
         </div>
-      <% } %>
-
-      <div class="bp-field-row">
-        <div class="bp-field">
-          <label>Turf</label>
-          <div class="val"><%= booking.Turf.name %></div>
+        <div class="tk-mid">
+          <div class="tk-mini-info">
+            <div>
+              <div class="tk-label">Date</div>
+              <div class="tk-value small"><%= booking.date %></div>
+            </div>
+            <div>
+              <div class="tk-label">Type</div>
+              <div class="tk-value small"><%= booking.Turf.type %></div>
+            </div>
+            <div>
+              <div class="tk-label">Ref</div>
+              <div class="tk-value small"><%= booking.bookingRef %></div>
+            </div>
+          </div>
+          <% if (booking.qrCode) { %>
+            <div class="tk-qr-box"><img src="<%= booking.qrCode %>" alt="QR Code"></div>
+          <% } %>
         </div>
-        <div class="bp-field">
-          <label>Date</label>
-          <div class="val"><%= booking.date %></div>
+        <div class="tk-bottom-strip">
+          <div class="tk-cell">
+            <div class="tk-label">Date</div>
+            <div class="tk-value small"><%= booking.date %></div>
+          </div>
+          <div class="tk-cell">
+            <div class="tk-label">Start</div>
+            <div class="tk-value small"><%= booking.startTime %></div>
+          </div>
+          <div class="tk-cell">
+            <div class="tk-label">End</div>
+            <div class="tk-value small"><%= booking.endTime %></div>
+          </div>
+          <div class="tk-cell price">
+            <div class="tk-label">Price</div>
+            <div class="tk-value small">৳<%= booking.totalPrice %></div>
+          </div>
         </div>
-        <div class="bp-field">
-          <label>Time</label>
-          <div class="val"><%= booking.startTime %> – <%= booking.endTime %></div>
-        </div>
-        <% if (booking.discountAmount > 0) { %>
-        <div class="bp-field">
-          <label>Discount</label>
-          <div class="val small-val">-৳<%= booking.discountAmount %> (<%= booking.couponCode %>)</div>
-        </div>
-        <% } %>
-        <% if (booking.Payment) { %>
-        <div class="bp-field">
-          <label>Payment Method</label>
-          <div class="val small-val"><%= booking.Payment.method %></div>
-        </div>
-        <div class="bp-field">
-          <label>Payment Status</label>
-          <div class="val small-val"><%= booking.Payment.status %></div>
-        </div>
-        <div class="bp-field">
-          <label>Invoice No</label>
-          <div class="val small-val"><%= booking.Payment.invoiceNo %></div>
-        </div>
-        <div class="bp-field">
-          <label>Transaction ID</label>
-          <div class="val small-val"><%= booking.Payment.transactionId || '-' %></div>
-        </div>
-        <div class="bp-field">
-          <label>Payer Name</label>
-          <div class="val small-val"><%= booking.Payment.payerName || '-' %></div>
-        </div>
-        <div class="bp-field">
-          <label>Payer Number</label>
-          <div class="val small-val"><%= booking.Payment.payerNumber || '-' %></div>
-        </div>
-        <% } %>
-        <% if (booking.notes) { %>
-        <div class="bp-field" style="grid-column: 1 / -1;">
-          <label>Notes</label>
-          <div class="val small-val"><%= booking.notes %></div>
-        </div>
-        <% } %>
       </div>
 
-      <div class="bp-total">
-        <span class="text-muted small">Total Paid</span>
-        <span class="amt">৳<%= booking.totalPrice %></span>
+      <div class="tk-divider">
+        <div class="tk-notch top"></div>
+        <div class="tk-notch bottom"></div>
       </div>
-    </div>
 
-    <div class="bp-divider"></div>
-
-    <div class="bp-stub">
-      <div class="bp-ref">Booking Ref</div>
-      <div class="bp-ref-code"><%= booking.bookingRef %></div>
-      <% if (booking.qrCode) { %>
-        <div class="bp-qr-box">
-          <img src="<%= booking.qrCode %>" alt="QR Code">
+      <div class="tk-stub">
+        <div class="tk-header"><span>Football Ticket</span></div>
+        <div class="tk-body">
+          <div class="tk-row">
+            <div>
+              <div class="tk-label">Player Name</div>
+              <div class="tk-value"><%= currentUser.name %></div>
+            </div>
+          </div>
+          <div class="tk-row">
+            <div>
+              <div class="tk-label">Turf:</div>
+              <div class="tk-value"><%= booking.Turf.name %></div>
+            </div>
+          </div>
+          <div class="tk-row">
+            <div>
+              <div class="tk-label">Time:</div>
+              <div class="tk-value"><%= booking.startTime %> - <%= booking.endTime %></div>
+            </div>
+          </div>
         </div>
-        <div class="bp-scan-note">Show this QR code<br>at the turf for check-in</div>
-      <% } %>
+        <div class="tk-bottom-strip">
+          <div class="tk-cell">
+            <div class="tk-label">Date</div>
+            <div class="tk-value small"><%= booking.date %></div>
+          </div>
+          <div class="tk-cell">
+            <div class="tk-label">Type</div>
+            <div class="tk-value small"><%= booking.Turf.type %></div>
+          </div>
+          <div class="tk-cell">
+            <div class="tk-label">Ref</div>
+            <div class="tk-value small"><%= booking.bookingRef %></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <a href="/my-bookings" class="btn btn-outline-success w-100 mt-4"><i class="fa-solid fa-arrow-left me-1"></i> Back to My Bookings</a>
+  <!-- Supplementary details below the ticket visual -->
+  <div class="card p-4 mt-4 shadow-sm tk-status-note">
+    <% const steps = ['pending', 'confirmed', 'completed']; const curIdx = steps.indexOf(booking.status); %>
+    <% if (booking.status === 'cancelled') { %>
+      <div class="alert alert-secondary py-2 mb-3">This booking was cancelled.</div>
+    <% } else { %>
+      <div class="d-flex justify-content-between mb-4 small text-center">
+        <% ['Booked', 'Payment Verified', 'Completed'].forEach((label, i) => { %>
+          <div class="flex-fill">
+            <div class="mx-auto rounded-circle d-flex align-items-center justify-content-center mb-1"
+                 style="width:28px;height:28px;background:<%= i <= curIdx ? '#198754' : '#dee2e6' %>;color:#fff;">
+              <%- i < curIdx ? '&#10003;' : (i+1) %>
+            </div>
+            <div class="<%= i <= curIdx ? 'text-success fw-bold' : 'text-muted' %>"><%= label %></div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <% if (booking.discountAmount > 0) { %><p><strong>Discount:</strong> -৳<%= booking.discountAmount %> (<%= booking.couponCode %>)</p><% } %>
+    <% if (booking.Payment) { %>
+      <p><strong>Payment Method:</strong> <%= booking.Payment.method %></p>
+      <p><strong>Payment Status:</strong> <%= booking.Payment.status %></p>
+      <p><strong>Invoice No:</strong> <%= booking.Payment.invoiceNo %></p>
+      <p><strong>Transaction ID:</strong> <%= booking.Payment.transactionId || '-' %></p>
+      <p><strong>Payer Name:</strong> <%= booking.Payment.payerName || '-' %></p>
+      <p><strong>Payer Number:</strong> <%= booking.Payment.payerNumber || '-' %></p>
+    <% } %>
+    <% if (booking.notes) { %><p class="mb-0"><strong>Notes:</strong> <%= booking.notes %></p><% } %>
+  </div>
+
+  <a href="/my-bookings" class="btn btn-outline-success w-100 mt-3"><i class="fa-solid fa-arrow-left me-1"></i> Back to My Bookings</a>
 </div>
 
 <% if (booking.Payment && booking.Payment.status === 'pending' && ['bKash','Nagad','Rocket'].includes(booking.Payment.method) && booking.status !== 'confirmed') { %>
-  <div class="container mt-3 bp-wrap">
+  <div class="container mt-3 tk-wrap">
     <div class="card p-3">
       <h5>Submit Payment Details</h5>
       <p class="text-muted small">Send the amount to admin number: <strong><%= settings.contactPhone %></strong> and enter the transaction details below for verification.</p>
