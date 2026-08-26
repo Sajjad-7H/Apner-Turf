@@ -484,7 +484,7 @@ router.get('/settings', async (req, res) => {
 
 router.post('/settings', upload.single('logo'), async (req, res) => {
   const b = req.body;
-  for (const key of ['siteName', 'tagline', 'contactEmail', 'contactPhone', 'address', 'facebookUrl', 'primaryColor']) {
+ for (const key of ['siteName', 'tagline', 'contactEmail', 'contactPhone', 'address', 'facebookUrl', 'primaryColor', 'secondaryColor']) {
     if (b[key] !== undefined) await setSetting(key, b[key]);
   }
   if (req.file) await setSetting('logo', fileToDataUri(req.file));
