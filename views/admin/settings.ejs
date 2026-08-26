@@ -6,10 +6,41 @@
     <div class="mb-3"><label class="form-label">Logo</label><input type="file" name="logo" class="form-control">
       <% if (settings.logo) { %><img src="<%= settings.logo %>" height="40" class="mt-2"><% } %>
     </div>
+    <div class="mb-3">
+      <label class="form-label">Homepage Banner Image (shows below the tagline)</label>
+      <input type="file" name="heroImage" class="form-control" accept="image/*">
+      <div class="form-text">
+        Recommended size: <strong>1600 x 500 px</strong> (wide banner shape, roughly 3.2:1). Max file size: <strong>3MB</strong>.
+      </div>
+      <% if (settings.heroImage) { %>
+        <img src="<%= settings.heroImage %>" style="max-width:100%; max-height:160px; object-fit:cover;" class="mt-2 rounded border">
+      <% } %>
+    </div>
     <div class="mb-3"><label class="form-label">Contact Email</label><input name="contactEmail" class="form-control" value="<%= settings.contactEmail %>"></div>
     <div class="mb-3"><label class="form-label">Contact Phone</label><input name="contactPhone" class="form-control" value="<%= settings.contactPhone %>"></div>
     <div class="mb-3"><label class="form-label">Address</label><input name="address" class="form-control" value="<%= settings.address %>"></div>
     <div class="mb-3"><label class="form-label">Facebook URL</label><input name="facebookUrl" class="form-control" value="<%= settings.facebookUrl || '' %>"></div>
+
+    <hr class="my-4">
+    <h5 class="mb-3">Website Colors</h5>
+    <p class="text-muted small">These colors apply across the whole website (buttons, links, the homepage banner) — only admins can change them.</p>
+    <div class="row">
+      <div class="col-6 mb-3">
+        <label class="form-label">Primary Color</label>
+        <div class="input-group">
+          <input type="color" name="primaryColor" class="form-control form-control-color" value="<%= settings.primaryColor %>" title="Choose primary color">
+        </div>
+        <div class="form-text">Main color: buttons, links, badges.</div>
+      </div>
+      <div class="col-6 mb-3">
+        <label class="form-label">Secondary Color</label>
+        <div class="input-group">
+          <input type="color" name="secondaryColor" class="form-control form-control-color" value="<%= settings.secondaryColor %>" title="Choose secondary color">
+        </div>
+        <div class="form-text">Used with Primary Color for the homepage banner gradient.</div>
+      </div>
+    </div>
+
     <button class="btn btn-success">Save Settings</button>
   </form>
 </div>
