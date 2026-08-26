@@ -482,12 +482,14 @@ router.get('/settings', async (req, res) => {
   res.render('admin/settings', { title: 'Site Settings', layout: 'admin/layout', settings });
 });
 
-router.post('/settings', upload.single('logo'), async (req, res) => {
+router.post('/settings', upload.fields([{ name: 'logo', maxCount: 1 }, { name: 'heroImage', maxCount: 1 }]), async (req, res) => {
   const b = req.body;
- for (const key of ['siteName', 'tagline', 'contactEmail', 'contactPhone', 'address', 'facebookUrl', 'primaryColor', 'secondaryColor']) {
+  for (const key of ['siteName', 'tagline', 'contactEmail', 'contactPhone', 'address', 'facebookUrl', 'primaryColor', 'secondaryColor']) {
     if (b[key] !== undefined) await setSetting(key, b[key]);
   }
-  if (req.file) await setSetting('logo', fileToDataUri(req.file));
+  const files = req.files || {};
+  if (files.logo && files.logo[0]) await setSetting('logo', fileToDataUri(files.logo[0]));
+  if (files.heroImage && files.heroImage[0]) await setSetting('heroImage', fileToDataUri(files.heroImage[0]));
   req.flash('success', 'Settings updated.');
   res.redirect('/admin/settings');
 });
